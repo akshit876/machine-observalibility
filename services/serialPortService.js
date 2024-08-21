@@ -1,55 +1,33 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const { SerialPort } = require("serialport");
-const { ReadlineParser } = require("@serialport/parser-readline");
-const ExcelJS = require("exceljs");
-const fs = require("fs");
-const path = require("path");
-const logger = require("./logging"); // Import the logger
+import { SerialPort } from "serialport";
+import { ReadlineParser } from "@serialport/parser-readline";
+import fs from "fs";
+import path, { dirname } from "path";
+import logger from "../logger.js";
+import {
+  updateBuffer,
+  processFirstScan,
+  processSecondScan,
+} from "./scanUtils.js";
+import {
+  handlePortOpen,
+  handlePortClose,
+  handlePortError,
+  handlePortDisconnect,
+  handlePortDrain,
+  handlePortFlush,
+} from "./portUtils.js";
+import { fileURLToPath } from "url";
 
-let buffer = "";
-let scanResults = [];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Function to get the current date as a string for the file name
-function getCurrentDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let buffer = ""; // Buffer to store incoming data
+let firstScanData = null; // Variable to store the first scan data
+let codeWritten = false; // Local management of codeWritten flag
 
-// Function to save data to an Excel file
-async function saveToExcel(data) {
-  const fileName = `${getCurrentDate()}.xlsx`;
-  const filePath = path.join(__dirname, "../data", fileName); // Save files in a 'data' directory
-
-  const workbook = new ExcelJS.Workbook();
-  let worksheet;
-
-  if (fs.existsSync(filePath)) {
-    await workbook.xlsx.readFile(filePath);
-    worksheet = workbook.getWorksheet(1);
-  } else {
-    worksheet = workbook.addWorksheet("Scan Results");
-    worksheet.columns = [
-      { header: "Timestamp", key: "timestamp", width: 20 },
-      { header: "Scan Data", key: "data", width: 30 },
-    ];
-  }
-
-  data.forEach((item) => {
-    worksheet.addRow({
-      timestamp: item.timestamp,
-      data: item.data,
-    });
-  });
-
-  await workbook.xlsx.writeFile(filePath);
-  logger.info(`Data saved to ${fileName}`);
-}
-
-// Function to initialize and handle the serial port connection
-function initSerialPort() {
+// Initialize the serial port
+export function initSerialPort() {
   const port = new SerialPort({
     path: process.env.SERIAL_PORT || "COM4",
     baudRate: parseInt(process.env.BAUD_RATE, 10) || 9600,
@@ -63,67 +41,63 @@ function initSerialPort() {
 
   port.open((err) => {
     if (err) {
-      logger.error("Error opening port: %s", err.message);
+      handlePortError(err);
       return;
     }
-    logger.info("Serial port opened");
+    handlePortOpen();
   });
 
   parser.on("data", async (data) => {
-    buffer += data.toString();
-
-    let parts = buffer.split(/(NG|\r)/);
+    let parts = updateBuffer(data);
 
     while (parts.length > 1) {
       let part = parts.shift().trim();
       if (part) {
-        const timestamp = new Date().toISOString();
-        scanResults.push({ timestamp, data: part });
-        logger.info("Received data: %s", part);
+        if (!firstScanData) {
+          firstScanData = processFirstScan(part);
+        } else if (codeWritten) {
+          await processSecondScan(part, firstScanData);
+          // Reset for the next cycle
+          firstScanData = null;
+          codeWritten = false;
+        }
       }
+
       let delimiter = parts.shift().trim();
       if (delimiter === "NG") {
-        const timestamp = new Date().toISOString();
-        scanResults.push({ timestamp, data: delimiter });
-        logger.info("Received delimiter: %s", delimiter);
+        if (!firstScanData) {
+          firstScanData = processFirstScan(delimiter);
+        } else if (codeWritten) {
+          await processSecondScan(delimiter, firstScanData);
+          // Reset for the next cycle
+          firstScanData = null;
+          codeWritten = false;
+        }
       }
     }
 
+    // The last part is potentially incomplete, so keep it in the buffer
     buffer = parts.length ? parts[0] : "";
-
-    try {
-      await saveToExcel(scanResults);
-      scanResults.length = 0;
-    } catch (err) {
-      logger.error("Error saving to Excel: %s", err.message);
-    }
   });
 
-  port.on("error", (err) => {
-    logger.error("Error: %s", err.message);
-  });
-
-  port.on("close", () => {
-    logger.info("Serial port closed");
-  });
-
-  port.on("open", () => {
-    logger.info("Port is open and ready to read data");
-  });
-
-  port.on("disconnect", () => {
-    logger.info("Port disconnected");
-  });
-
-  port.on("drain", () => {
-    logger.info("Port drain event");
-  });
-
-  port.on("flush", () => {
-    logger.info("Port flush event");
-  });
+  // Attach event handlers using the utility functions
+  port.on("error", handlePortError);
+  port.on("close", handlePortClose);
+  port.on("disconnect", handlePortDisconnect);
+  port.on("drain", handlePortDrain);
+  port.on("flush", handlePortFlush);
 
   return port;
 }
 
-module.exports = { initSerialPort };
+// Function to monitor the code file for changes
+export function watchCodeFile() {
+  const filePath = path.join(__dirname, "../data", "code.txt");
+
+  fs.watchFile(filePath, (curr, prev) => {
+    if (curr.size > 0 && curr.mtime !== prev.mtime) {
+      logger.info("Manual code written to file");
+      codeWritten = true;
+    }
+  });
+}

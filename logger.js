@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const winston = require("winston");
-const path = require("path");
-const fs = require("fs");
+import winston from "winston";
+import fs from "fs";
+import path from "path";
 
 // Ensure log directory exists
 const logDir = "logs";
@@ -42,4 +41,4 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-module.exports = logger;
+export default logger;
