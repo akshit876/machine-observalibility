@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 import fs from "fs";
 import path, { dirname } from "path";
 import ExcelJS from "exceljs";
@@ -61,7 +62,7 @@ export function compareScans(scan1, scan2) {
 export async function saveToExcel(manualCode, result) {
   const fileName = `${getCurrentDate()}.xlsx`;
   const filePath = path.join(__dirname, "../data", fileName);
-  
+
   const formattedTime = getCurrentTime24HourFormat();
 
   const workbook = new ExcelJS.Workbook();
@@ -90,19 +91,17 @@ export async function saveToExcel(manualCode, result) {
       { header: "Result", key: "result", width: 10 },
     ];
   }
-  
+
   worksheet.addRow({
     // timestamp: new Date().toISOString(),
-    timestamp: `${new Date().toISOString().split('T')[0]} ${formattedTime}`,
+    timestamp: `${new Date().toISOString().split("T")[0]} ${formattedTime}`,
     code: manualCode,
     result,
   });
-  
+
   await workbook.xlsx.writeFile(filePath);
-  console.log({manualCode,result,ws:worksheet?._rows})
+  console.log({ manualCode, result, ws: worksheet?._rows });
   logger.info(`Data saved to Excel file: ${fileName}`);
-
-
 }
 
 // Save the result to a CSV file
@@ -110,17 +109,13 @@ export async function saveToCSV(manualCode, result) {
   const fileName = `${getCurrentDate()}.csv`;
   const filePath = path.join(__dirname, "../data", fileName);
 
-  const timestamp = `${new Date().toISOString().split('T')[0]} ${getCurrentTime24HourFormat()}`;
-  const record = [
-    timestamp,
-    manualCode,
-    result
-  ];
+  const timestamp = `${new Date().toISOString().split("T")[0]} ${getCurrentTime24HourFormat()}`;
+  const record = [timestamp, manualCode, result];
 
   // Check if file exists
   if (fs.existsSync(filePath)) {
     // Append data to the existing file
-    const csvStream = fs.createWriteStream(filePath, { flags: 'a' });
+    const csvStream = fs.createWriteStream(filePath, { flags: "a" });
     const stringifier = stringify({ header: false });
     stringifier.pipe(csvStream);
     stringifier.write(record);
@@ -128,7 +123,10 @@ export async function saveToCSV(manualCode, result) {
   } else {
     // Create a new file and write header and data
     const csvStream = fs.createWriteStream(filePath);
-    const stringifier = stringify({ header: true, columns: ['Timestamp', 'Code', 'Result'] });
+    const stringifier = stringify({
+      header: true,
+      columns: ["Timestamp", "Code", "Result"],
+    });
     stringifier.pipe(csvStream);
     stringifier.write(record);
     stringifier.end();
