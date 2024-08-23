@@ -12,7 +12,9 @@ function handlePortClose() {
 
 // Handle the port error event
 function handlePortError(err) {
-  logger.error("Error with serial port: %s", err.message);
+  console.log({ err });
+  logger.error(`Error with serial port: ${err.message}`);
+  logger.error(`Error stack trace: ${JSON.stringify(err)}`);
 }
 
 // Handle other port events (e.g., disconnect, drain, flush)

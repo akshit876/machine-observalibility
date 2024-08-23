@@ -18,7 +18,7 @@ export function updateBuffer(data) {
 
 // Process the first scan
 export function processFirstScan(part) {
-  logger.info("First scan data received: %s", part);
+  logger.info(`First scan data received: ${part}`);
   buffer = ""; // Clear buffer after processing first scan
   return part; // Return the first scan data for later comparison
 }
@@ -26,12 +26,12 @@ export function processFirstScan(part) {
 // Process the second scan
 export async function processSecondScan(part, firstScanData) {
   const secondScanData = part;
-  logger.info("Second scan data received: %s", secondScanData);
+  logger.info(`Second scan data received: ${secondScanData}`);
 
   const result = compareScans(firstScanData, secondScanData);
   const manualCode = await readFromFile("code.txt");
   await saveToExcel(manualCode, result);
-  logger.info("Scan comparison result saved to Excel: %s", result);
+  logger.info(`Scan comparison result saved to Excel: ${result}`);
 
   // Clear the code file and reset for the next operation
   await clearCodeFile("code.txt");
@@ -65,11 +65,11 @@ export async function saveToExcel(manualCode, result) {
   worksheet.addRow({
     timestamp: new Date().toISOString(),
     code: manualCode,
-    result: result,
+    result,
   });
 
   await workbook.xlsx.writeFile(filePath);
-  logger.info("Data saved to Excel file: %s", fileName);
+  logger.info(`Data saved to Excel file: ${fileName}`);
 }
 
 // Read the manual code from the file

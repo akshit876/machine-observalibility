@@ -1,8 +1,10 @@
 import { createServer } from "http";
 import next from "next";
 import morgan from "morgan";
+import { Server } from "socket.io";
 import logger from "./logger.js"; // Assuming you have a logger setup
 import { initSerialPort, watchCodeFile } from "./services/serialPortService.js";
+import { MockSerialPort } from "./services/mockSerialPort.js"; // Import MockSerialPort
 
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -18,6 +20,8 @@ app.prepare().then(() => {
   const server = createServer((req, res) => {
     handle(req, res);
   });
+
+  const io = new Server(server);
 
   // Middleware for logging HTTP requests
   server.on(
@@ -40,7 +44,7 @@ app.prepare().then(() => {
 
     // Initialize the serial port service
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const port = initSerialPort();
+    initSerialPort(io, MockSerialPort); // Pass MockSerialPort to initSerialPort
 
     // Start monitoring the code file for changes
     watchCodeFile();
