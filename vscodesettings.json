@@ -1,59 +1,58 @@
 {
-    "workbench.colorTheme": "One Dark Pro Darker",
-    "files.autoSave": "afterDelay",
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-    "diffEditor.ignoreTrimWhitespace": false,
-    "git.autofetch": true,
-    "javascript.format.semicolons": "insert",
-    "eslint.format.enable": true,
-    "aws.telemetry": false,
-    "redhat.telemetry.enabled": false,
-    "editor.fontSize": 18,
-    "debug.console.fontSize": 18,
-    "workbench.iconTheme": "material-icon-theme",
-    "terminal.integrated.env.linux": {},
-    "totalTypeScript.hideAllTips": false,
-    "totalTypeScript.hideBasicTips": true,
-    "editor.mouseWheelZoom": true,
-    "editor.cursorSmoothCaretAnimation": "on",
-    "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "github.copilot.enable": {
-      "*": true,
-      "plaintext": false,
-      "markdown": false,
-      "scminput": false
-    },
-    "console-ninja.featureSet": "Community",
-    "editor.linkedEditing": true,
-    "diffEditor.hideUnchangedRegions.enabled": true,
-    "security.promptForLocalFileProtocolHandling": false,
-    "workbench.colorCustomizations": {},
-    "gitlens.ai.experimental.provider": "openai",
-    "gitlens.ai.experimental.openai.model": "gpt-3.5-turbo-1106",
-    "CodeGPT.apiKey": "CodeGPT Plus Beta",
-    "window.zoomLevel": -1,
-    "bitoAI.codeCompletion.enableAutoCompletion": true,
-    "bitoAI.codeCompletion.enableCommentToCode": true,
-    "editor.inlineSuggest.showToolbar": "onHover",
-    "turboConsoleLog.addSemicolonInTheEnd": true,
-    "turboConsoleLog.includeFileNameAndLineNum": true,
-    "turboConsoleLog.logMessagePrefix": "",
-    "git.enableSmartCommit": true,
-    "[jsonc]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "notebook.defaultFormatter": "dbaeumer.vscode-eslint",
-      "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": "explicit"
-      },
-      "eslint.validate": [
-        "javascript",
-        "javascriptreact",
-        "typescript",
-        "typescriptreact"
-      ],
-      "editor.formatOnSave": false, // Disable default formatting, use Prettier instead
-  }
-  
+  "workbench.colorTheme": "One Dark Pro Darker",
+  "files.autoSave": "afterDelay",
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "diffEditor.ignoreTrimWhitespace": false,
+  "git.autofetch": true,
+  "javascript.format.semicolons": "insert",
+  "eslint.format.enable": true,
+  "aws.telemetry": false,
+  "redhat.telemetry.enabled": false,
+  "editor.fontSize": 18,
+  "debug.console.fontSize": 18,
+  "workbench.iconTheme": "material-icon-theme",
+  "terminal.integrated.env.linux": {},
+  "totalTypeScript.hideAllTips": false,
+  "totalTypeScript.hideBasicTips": true,
+  "editor.mouseWheelZoom": true,
+  "editor.cursorSmoothCaretAnimation": "on",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  },
+  "console-ninja.featureSet": "Community",
+  "editor.linkedEditing": true,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "security.promptForLocalFileProtocolHandling": false,
+  "workbench.colorCustomizations": {},
+  "gitlens.ai.experimental.provider": "openai",
+  "gitlens.ai.experimental.openai.model": "gpt-3.5-turbo-1106",
+  "CodeGPT.apiKey": "CodeGPT Plus Beta",
+  "window.zoomLevel": -1,
+  "bitoAI.codeCompletion.enableAutoCompletion": true,
+  "bitoAI.codeCompletion.enableCommentToCode": true,
+  "editor.inlineSuggest.showToolbar": "onHover",
+  "turboConsoleLog.addSemicolonInTheEnd": true,
+  "turboConsoleLog.includeFileNameAndLineNum": true,
+  "turboConsoleLog.logMessagePrefix": "",
+  "git.enableSmartCommit": true,
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "notebook.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "editor.formatOnSave": false // Disable default formatting, use Prettier instead
+}

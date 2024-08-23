@@ -73,7 +73,7 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
     console.log({ parts });
     while (parts.length > 1) {
       const part = parts.shift().trim();
-    logger.info(`Received data part: ${part}`);
+      logger.info(`Received data part: ${part}`);
 
       console.log("part", part);
       if (part) {
@@ -87,7 +87,7 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
             await clearCodeFile("code.txt");
             fs.writeFileSync(
               path.join(__dirname, "../data/code.txt"),
-              specialCode,
+              specialCode
             );
 
             logger.info(`Special code generated and written: ${specialCode}`);
@@ -96,14 +96,14 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
             logger.info("F2 key press simulated");
           } else {
             logger.info(
-              "Machine won't run further since the component is already marked.",
+              "Machine won't run further since the component is already marked."
             );
             io.emit("machine-stop", {
               message:
                 "Machine won't run further since the component is already marked.",
             });
             firstScanData = null;
-          codeWritten = false;
+            codeWritten = false;
             // return;
           }
         } else if (codeWritten) {

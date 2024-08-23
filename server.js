@@ -30,7 +30,7 @@ app.prepare().then(() => {
       stream: {
         write: (message) => logger.info(message.trim()),
       },
-    }),
+    })
   );
 
   // Start the server and listen on a port

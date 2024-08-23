@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -6,10 +6,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"  # Expose the application on port 3000
+      - "3000:3000" # Expose the application on port 3000
     volumes:
-      - .:/app  # Mount the current directory to /app inside the container
-      - /app/node_modules  # Prevent overwriting node_modules inside the container
+      - .:/app # Mount the current directory to /app inside the container
+      - /app/node_modules # Prevent overwriting node_modules inside the container
     environment:
       NODE_ENV: development
-    command: npm run dev  # Start Next.js in development mode
+    command: npm run dev # Start Next.js in development mode

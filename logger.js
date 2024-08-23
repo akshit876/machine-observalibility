@@ -15,7 +15,7 @@ const fileFormat = winston.format.combine(
   }),
   winston.format.printf(({ timestamp, level, message, stack, service }) => {
     return `${timestamp} [${level}] [${service}] : ${stack || message}`;
-  }),
+  })
 );
 
 // Create a custom format for the console output with service name
@@ -26,7 +26,7 @@ const consoleFormat = winston.format.combine(
   }),
   winston.format.printf(({ timestamp, level, message, stack, service }) => {
     return `${timestamp} [${level}] [${service}] : ${stack || message}`;
-  }),
+  })
 );
 
 // Create the logger
@@ -44,7 +44,7 @@ const logger = winston.createLogger({
       level: "error",
       format: winston.format.combine(
         winston.format.timestamp(),
-        winston.format.json(),
+        winston.format.json()
       ),
     }),
     // File transport for combined logs (readable format with service name)
@@ -60,9 +60,9 @@ if (process.env.NODE_ENV !== "production") {
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        winston.format.simple(),
+        winston.format.simple()
       ),
-    }),
+    })
   );
 }
 
