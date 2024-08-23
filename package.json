@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development nodemon",
+    "dev": "cross-env NODE_ENV=development nodemon",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
   "dependencies": {
+    "csv": "^6.3.10",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "morgan": "^1.10.0",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.2.0",
     "@typescript-eslint/parser": "^8.2.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-next": "^0.2.4",
     "eslint-config-prettier": "^9.1.0",

@@ -35,9 +35,9 @@ const logger = winston.createLogger({
   defaultMeta: { service: "serialport-service" }, // Set the service name here
   transports: [
     // Console transport with colored and readable logs
-    new winston.transports.Console({
-      format: consoleFormat,
-    }),
+    // new winston.transports.Console({
+    //   format: consoleFormat,
+    // }),
     // File transport for error logs (JSON format)
     new winston.transports.File({
       filename: path.join(logDir, "error.log"),

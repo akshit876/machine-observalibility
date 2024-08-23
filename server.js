@@ -44,7 +44,8 @@ app.prepare().then(() => {
 
     // Initialize the serial port service
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    initSerialPort(io, MockSerialPort); // Pass MockSerialPort to initSerialPort
+    // initSerialPort(io, MockSerialPort); // Pass MockSerialPort to initSerialPort
+    initSerialPort(io); // Pass MockSerialPort to initSerialPort
 
     // Start monitoring the code file for changes
     watchCodeFile();
