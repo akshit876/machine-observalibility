@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable consistent-return */
 import fs from "fs";
 import path, { dirname } from "path";
@@ -5,7 +6,7 @@ import ExcelJS from "exceljs";
 import logger from "../logger.js";
 
 import { fileURLToPath } from "url";
-import { stringify } from "csv";
+import { parse, stringify } from "csv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,13 +41,13 @@ export function processFirstScan(part) {
 }
 
 // Process the second scan
-export async function processSecondScan(part, firstScanData) {
+export async function processSecondScan(io, part, firstScanData) {
   const secondScanData = part;
   logger.info(`Second scan data received: ${secondScanData}`);
 
   const manualCode = await readFromFile("code.txt");
   const result = compareScans(manualCode, secondScanData);
-  await saveToCSV(manualCode, result);
+  await saveToCSV(io, manualCode, result);
   logger.info(`Scan comparison result saved to Excel: ${result}`);
 
   // Clear the code file and reset for the next operation
@@ -104,36 +105,63 @@ export async function saveToExcel(manualCode, result) {
   logger.info(`Data saved to Excel file: ${fileName}`);
 }
 
-// Save the result to a CSV file
-export async function saveToCSV(manualCode, result) {
+function sanitizeData(data) {
+  return data.replace(/"/g, '""').replace(/\r?\n|\r/g, " ");
+}
+
+export async function saveToCSV(io, manualCode, result) {
   const fileName = `${getCurrentDate()}.csv`;
   const filePath = path.join(__dirname, "../data", fileName);
 
   const timestamp = `${new Date().toISOString().split("T")[0]} ${getCurrentTime24HourFormat()}`;
-  const record = [timestamp, manualCode, result];
+  const sanitizedManualCode = sanitizeData(manualCode);
+  const sanitizedResult = sanitizeData(result);
+  const record = [timestamp, sanitizedManualCode, sanitizedResult];
 
-  // Check if file exists
-  if (fs.existsSync(filePath)) {
-    // Append data to the existing file
-    const csvStream = fs.createWriteStream(filePath, { flags: "a" });
-    const stringifier = stringify({ header: false });
-    stringifier.pipe(csvStream);
-    stringifier.write(record);
-    stringifier.end();
-  } else {
-    // Create a new file and write header and data
-    const csvStream = fs.createWriteStream(filePath);
-    const stringifier = stringify({
-      header: true,
-      columns: ["Timestamp", "Code", "Result"],
+  const fileExists = fs.existsSync(filePath);
+
+  const csvStream = fs.createWriteStream(filePath, {
+    flags: fileExists ? "a" : "w",
+  });
+  const stringifier = stringify({
+    header: !fileExists,
+    columns: fileExists ? undefined : ["Timestamp", "Code", "Result"],
+    quoted: true, // Ensure that fields are quoted to handle newlines and special characters
+  });
+  stringifier.pipe(csvStream);
+  stringifier.write(record);
+  stringifier.end();
+
+  logger.info(`Data saved to CSV file: ${fileName}`);
+
+  // Emit CSV data to the frontend
+  readCsvAndEmit(io, filePath);
+}
+
+function readCsvAndEmit(io, filePath) {
+  const csvData = [];
+  fs.createReadStream(filePath)
+    .pipe(
+      parse({
+        delimiter: ",",
+        relax_quotes: true, // Allow unescaped quotes inside fields
+        relax_column_count: true, // Relax column count to handle inconsistent fields
+        trim: true,
+      })
+    )
+    .on("data", (row) => {
+      csvData.push(row);
+    })
+    .on("end", () => {
+      io.emit("csv-data", {
+        csvData,
+      });
+      logger.info("CSV data emitted to frontend");
+    })
+    .on("error", (error) => {
+      console.error({ error });
+      logger.error(`Error reading CSV file:, ${error}`);
     });
-    stringifier.pipe(csvStream);
-    stringifier.write(record);
-    stringifier.end();
-  }
-
-  // console.log(`Data saved to CSV file: ${fileName}`);
-  logger.info(`Data saved to csv file: ${fileName}`);
 }
 
 // Read the manual code from the file
@@ -166,7 +194,7 @@ export function clearCodeFile(fileName) {
 }
 
 // Function to get the current date as a string for the file name
-function getCurrentDate() {
+export function getCurrentDate() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");

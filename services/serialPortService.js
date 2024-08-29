@@ -107,7 +107,7 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
             // return;
           }
         } else if (codeWritten) {
-          await processSecondScan(part, firstScanData);
+          await processSecondScan(io, part, firstScanData);
           // Reset for the next cycle
           firstScanData = null;
           codeWritten = false;

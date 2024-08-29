@@ -32,10 +32,10 @@ module.exports = {
       version: "detect",
     },
     "import/resolver": {
-      node: {
-        extensions: [".js", ".jsx", ".ts", ".tsx"],
+      alias: {
+        map: [["@", "./src"]], // Adjust if your alias is different
+        extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
       },
-      typescript: {},
     },
   },
 };
