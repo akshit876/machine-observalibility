@@ -1,18 +1,23 @@
+/* eslint-disable consistent-return */
+import { useSocket } from "@/SocketContext";
 import { useState, useEffect } from "react";
-import io from "socket.io-client";
 
-// Custom hook to manage CSV data
 export const useCsvData = () => {
   const [csvData, setCsvData] = useState([]);
-  const socket = io.connect("http://localhost:3000"); // Adjust the URL as needed
+  const [loading, setLoading] = useState(true); // Add loading state
+  const socket = useSocket(); // Get the socket instance from context
 
   useEffect(() => {
+    if (!socket) return; // Ensure the socket is available
+
     // Function to handle incoming CSV data
     const handleCsvData = (data) => {
       setCsvData(data.csvData);
+      setLoading(false); // Set loading to false once data is received
     };
 
     // Request CSV data on component mount
+    setLoading(true); // Set loading to true when requesting data
     socket.emit("request-csv-data");
 
     // Listen for the csv-data event from the server
@@ -21,9 +26,8 @@ export const useCsvData = () => {
     // Cleanup the event listener on component unmount
     return () => {
       socket.off("csv-data", handleCsvData);
-      socket.disconnect(); // Close the socket connection when the component unmounts
     };
   }, [socket]);
 
-  return csvData;
+  return { csvData, loading }; // Return loading state along with csvData
 };

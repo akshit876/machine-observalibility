@@ -72,10 +72,51 @@ app.prepare().then(() => {
     logger.info("Server closed");
   });
 
-  function sendCsvDataToClient(socket) {
-    // const currentDate = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
-    // const filePath = path.join(__dirname, `../data/${currentDate}.csv`);
+  // function sendCsvDataToClient(socket) {
+  //   // const currentDate = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
+  //   // const filePath = path.join(__dirname, `../data/${currentDate}.csv`);
 
+  //   const fileName = `${getCurrentDate()}.csv`;
+  //   const filePath = path.join(__dirname, "data", fileName);
+
+  //   console.log({ fileName });
+
+  //   try {
+  //     fs.accessSync(filePath, fs.constants.R_OK);
+  //     console.log("File is accessible");
+  //   } catch (err) {
+  //     console.error("File is not accessible:", err);
+  //   }
+
+  //   // console.log({ filePath });
+  //   if (fs.existsSync(filePath)) {
+  //     fs.readFile(filePath, "utf8", (err, data) => {
+  //       if (err) {
+  //         logger.error("Error reading CSV file: ", err.message);
+  //         return;
+  //       }
+
+  //       // Split the data by line breaks to get each row
+  //       const rows = data.trim().split("\n");
+
+  //       // Split each row by commas to get the individual cells, and remove double quotes
+  //       const csvData = rows.map((row) =>
+  //         row.split(",").map((cell) => cell.replace(/"/g, ""))
+  //       );
+
+  //       csvData.reverse(); // Reverse the order to have the latest timestamps first
+
+  //       socket.emit("csv-data", {
+  //         csvData,
+  //       });
+  //       logger.info(`Emitted current date CSV data to client: ${socket.id}`);
+  //     });
+  //   } else {
+  //     logger.info(`No CSV file found for ${fileName}.`);
+  //   }
+  // }
+
+  function sendCsvDataToClient(socket) {
     const fileName = `${getCurrentDate()}.csv`;
     const filePath = path.join(__dirname, "data", fileName);
 
@@ -86,9 +127,9 @@ app.prepare().then(() => {
       console.log("File is accessible");
     } catch (err) {
       console.error("File is not accessible:", err);
+      return; // Exit the function if the file is not accessible
     }
 
-    // console.log({ filePath });
     if (fs.existsSync(filePath)) {
       fs.readFile(filePath, "utf8", (err, data) => {
         if (err) {
@@ -99,12 +140,22 @@ app.prepare().then(() => {
         // Split the data by line breaks to get each row
         const rows = data.trim().split("\n");
 
-        // Split each row by commas to get the individual cells, and remove double quotes
-        const csvData = rows.map((row) =>
-          row.split(",").map((cell) => cell.replace(/"/g, ""))
-        );
+        if (rows.length === 0) {
+          logger.info("CSV file is empty.");
+          return;
+        }
 
-        csvData.reverse(); // Reverse the order to have the latest timestamps first
+        // Extract the header row
+        const header = rows[0];
+
+        // Extract and reverse the remaining rows
+        const dataRows = rows
+          .slice(1)
+          .map((row) => row.split(",").map((cell) => cell.replace(/"/g, "")))
+          .reverse(); // Reverse the order starting from the second row
+
+        // Combine the header with the reversed data rows
+        const csvData = [header.split(","), ...dataRows];
 
         socket.emit("csv-data", {
           csvData,
