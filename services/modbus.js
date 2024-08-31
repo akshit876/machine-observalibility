@@ -4,38 +4,12 @@ const client = new ModbusRTU();
 
 async function connect() {
   try {
-    await client.connectTCP("192.168.0.100", { port: 502 }); // Replace with your Modbus device's IP address and port
+    await client.connectTCP("192.168.3.145", { port: 502 }); // Replace with your Modbus device's IP address and port
     client.setID(1); // Set the Modbus slave ID (adjust as needed)
     console.log("Connected to Modbus device");
   } catch (error) {
     console.error("Error connecting to Modbus device:", error);
     process.exit(1); // Exit the process if connection fails
-  }
-}
-
-// Function to convert a number to ASCII characters
-function convertToASCII(number) {
-  let asciiString = "";
-  while (number > 0) {
-    const asciiCode = number & 0xff; // Get the last byte
-    asciiString = String.fromCharCode(asciiCode) + asciiString; // Convert to character and add to the beginning of the string
-    number = number >> 8; // Shift to the next byte
-  }
-  return asciiString;
-}
-
-async function readRegister(address) {
-  try {
-    const { data } = await client.readHoldingRegisters(address, 1);
-    const value = data[0];
-    const asciiString = convertToASCII(value);
-    console.log(
-      `Read register at address ${address}: ${value} (ASCII: ${asciiString})`
-    );
-    return value;
-  } catch (error) {
-    console.error(`Error reading register at address ${address}:`, error);
-    throw error;
   }
 }
 
@@ -69,15 +43,48 @@ async function monitorRegisters(startAddress, quantity) {
   }
 }
 
-// async function readRegister(address) {
-//   try {
-//     const { data } = await client.readHoldingRegisters(address, 1);
-//     return data[0];
-//   } catch (error) {
-//     console.error(`Error reading register at address ${address}:`, error);
-//     throw error;
-//   }
-// }
+// Function to convert an array of register values to ASCII characters with the correct byte order
+function convertToASCII(registerValues) {
+  let asciiString = "";
+  registerValues.forEach((value) => {
+    // Extract the two bytes from the 16-bit register
+    const lowByte = value & 0xff; // Low byte (first)
+    const highByte = (value >> 8) & 0xff; // High byte (second)
+
+    // Convert bytes to characters and append to the final ASCII string
+    asciiString += String.fromCharCode(lowByte) + String.fromCharCode(highByte);
+  });
+  return asciiString;
+}
+
+async function readRegisterAndProvideASCII(address, len) {
+  try {
+    const { data } = await client.readHoldingRegisters(address, len);
+    const asciiString = convertToASCII(data);
+    console.log(
+      `Read registers starting at address ${address} (length: ${len}): ${data} (ASCII: ${asciiString})`
+    );
+    return asciiString;
+  } catch (error) {
+    console.error(`Error reading registers at address ${address}:`, error);
+    throw error;
+  }
+}
+
+// without ascii conversion
+async function readRegister(address, len) {
+  try {
+    const { data } = await client.readHoldingRegisters(address, len);
+    // const asciiString = convertToASCII(data);
+    console.log(
+      `Read registers starting at address ${address} (length: ${len}): ${data})`
+    );
+    return data;
+  } catch (error) {
+    console.error(`Error reading registers at address ${address}:`, error);
+    throw error;
+  }
+}
 
 async function writeRegister(address, value) {
   try {
@@ -91,4 +98,10 @@ async function writeRegister(address, value) {
   }
 }
 
-export { connect, monitorRegisters, readRegister, writeRegister };
+export {
+  connect,
+  monitorRegisters,
+  readRegister,
+  writeRegister,
+  readRegisterAndProvideASCII,
+};

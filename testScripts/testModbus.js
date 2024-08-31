@@ -2,6 +2,7 @@ import {
   connect,
   monitorRegisters,
   readRegister,
+  readRegisterAndProvideASCII,
   writeRegister,
 } from "../services/modbus.js";
 
@@ -12,16 +13,19 @@ async function testModbusService() {
 
     // Read a register
     console.log("Reading register at address 0...");
-    const value = await readRegister(0);
-    console.log("Value at register 0:", value);
+    const value = await readRegister(300, 1);
+    console.log("Value at register 300:", value);
+
+    const asciiString = readRegisterAndProvideASCII(350, 10);
+    console.log("ASCII String at register 350:", asciiString);
 
     // Write to a register
-    console.log("Writing value 42 to register at address 1...");
-    await writeRegister(1, 42);
+    // console.log("Writing value 42 to register at address 1...");
+    // await writeRegister(1, 42);
 
     // Monitor registers for changes
-    console.log("Monitoring registers 0-4 for changes...");
-    monitorRegisters(0, 5);
+    // console.log("Monitoring registers 0-4 for changes...");
+    // monitorRegisters(0, 5);
 
     // The script will continue running and monitoring registers
     // You can manually stop it with Ctrl+C
