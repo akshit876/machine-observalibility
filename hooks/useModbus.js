@@ -14,47 +14,41 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
   useEffect(() => {
     if (!socket) return; // Ensure the socket is available
 
-    const handleRegisterUpdate = (data) => {
-      if (data.index >= readRange[0] && data.index <= readRange[1]) {
-        setReadRegisters((prev) => {
-          const newRegisters = [...prev];
-          newRegisters[data.index - readRange[0]] = data.value;
-          return newRegisters;
-        });
-      }
+    const handleModbusData = (data) => {
+      // Assuming the data structure matches what's sent from the server
+      setReadRegisters(data.readRegisters || Array(10).fill(0));
     };
 
-    socket.on("registerUpdate", handleRegisterUpdate);
+    // Request initial Modbus data
+    socket.emit("request-modbus-data");
+
+    // Listen for Modbus data updates
+    socket.on("modbus-data", handleModbusData);
 
     return () => {
-      socket.off("registerUpdate", handleRegisterUpdate);
+      socket.off("modbus-data", handleModbusData);
     };
-  }, [socket, readRange]);
+  }, [socket]);
 
-  const handleWriteChange = useCallback(
-    (index, value) => {
-      if (index >= writeRange[0] && index <= writeRange[1]) {
-        const newValue = parseInt(value, 10) || 0;
-        setWriteRegisters((prev) => {
-          const newRegisters = [...prev];
-          newRegisters[index - writeRange[0]] = newValue;
-          return newRegisters;
-        });
-      }
-    },
-    [writeRange]
-  );
+  const handleWriteChange = useCallback((index, value) => {
+    const newValue = parseInt(value, 10) || 0;
+    setWriteRegisters((prev) => {
+      const newRegisters = [...prev];
+      newRegisters[index] = newValue;
+      return newRegisters;
+    });
+  }, []);
 
   const handleWrite = useCallback(
     (index) => {
-      if (socket && index >= writeRange[0] && index <= writeRange[1]) {
-        socket.emit("writeRegister", {
+      if (socket) {
+        socket.emit("write-modbus-register", {
           index,
-          value: writeRegisters[index - writeRange[0]],
+          value: writeRegisters[index],
         });
       }
     },
-    [socket, writeRegisters, writeRange]
+    [socket, writeRegisters]
   );
 
   return {

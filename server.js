@@ -62,6 +62,16 @@ app.prepare().then(() => {
     watchCodeFile();
   });
 
+    // New event handler for Modbus data request
+    socket.on("request-modbus-data", () => {
+      sendModbusDataToClient(socket);
+    });
+
+    // New event handler for writing Modbus register
+    socket.on("write-modbus-register", (data) => {
+      writeModbusRegister(data);
+    });
+
   // Handle server errors
   server.on("error", (err) => {
     logger.error("Server error: %s", err.message);
@@ -115,6 +125,37 @@ app.prepare().then(() => {
   //     logger.info(`No CSV file found for ${fileName}.`);
   //   }
   // }
+
+  // New function to send Modbus data to client
+  function sendModbusDataToClient(socket) {
+    // This is where you'd fetch the current state of Modbus registers
+    // For now, we'll send dummy data
+    const dummyData = {
+      readRegisters: Array(10).fill(0).map((_, i) => i * 100)
+    };
+    socket.emit("modbus-data", dummyData);
+  }
+
+  // New function to handle writing to Modbus register
+  function writeModbusRegister(data) {
+    const { index, value } = data;
+    logger.info(`Writing value ${value} to Modbus register ${index}`);
+    // Here you would implement the actual writing to the Modbus register
+    // After writing, you might want to broadcast the new state to all clients
+    io.emit("modbus-data", { readRegisters: /* updated register values */ });
+  }
+
+  // Function to periodically update Modbus data (if needed)
+  function updateModbusData() {
+    // Fetch updated Modbus data
+    const updatedData = {
+      readRegisters: /* fetch updated register values */
+    };
+    io.emit("modbus-data", updatedData);
+  }
+
+  // Set up periodic updates if needed
+  // setInterval(updateModbusData, 1000); // Update every second
 
   function sendCsvDataToClient(socket) {
     const fileName = `${getCurrentDate()}.csv`;
