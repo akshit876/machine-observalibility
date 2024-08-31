@@ -2,14 +2,17 @@ import ModbusRTU from "modbus-serial";
 
 const client = new ModbusRTU();
 
+const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
+const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
+
 async function connect() {
   try {
-    await client.connectTCP("192.168.3.145", { port: 502 }); // Replace with your Modbus device's IP address and port
+    await client.connectTCP(MODBUS_IP, { port: MODBUS_PORT });
     client.setID(1); // Set the Modbus slave ID (adjust as needed)
-    console.log("Connected to Modbus device");
+    console.log(`Connected to Modbus device at ${MODBUS_IP}:${MODBUS_PORT}`);
   } catch (error) {
     console.error("Error connecting to Modbus device:", error);
-    process.exit(1); // Exit the process if connection fails
+    throw error; // Let the caller handle the error
   }
 }
 
