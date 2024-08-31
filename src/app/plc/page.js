@@ -1,4 +1,6 @@
-import ModbusUI from "@/components/ModbusUI";
+"use client";
+
+import ModbusUI from "@/comp/ModbusPLC";
 
 export default function ModbusPage() {
   return (
