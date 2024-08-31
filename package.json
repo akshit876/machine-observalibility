@@ -19,6 +19,7 @@
     "exceljs": "^4.4.0",
     "lowdb": "^7.0.1",
     "lucide-react": "^0.435.0",
+    "modbus-serial": "^8.0.17",
     "morgan": "^1.10.0",
     "next": "14.2.5",
     "react": "^18",
