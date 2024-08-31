@@ -3,13 +3,13 @@ import next from "next";
 import fs from "fs";
 import morgan from "morgan";
 import { Server } from "socket.io";
-import logger from "./logger.js"; // Assuming you have a logger setup
+import logger from "./logger.js";
 import { initSerialPort, watchCodeFile } from "./services/serialPortService.js";
-import { MockSerialPort } from "./services/mockSerialPort.js"; // Import MockSerialPort
-
+import { MockSerialPort } from "./services/mockSerialPort.js";
 import { fileURLToPath } from "url";
 import path, { dirname, parse } from "path";
 import { getCurrentDate } from "./services/scanUtils.js";
+import { connect, readRegister, writeRegister } from "./services/modbus.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +20,6 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
-    // Apply morgan logging here
     morgan("combined", {
       stream: {
         write: (message) => logger.info(message.trim()),
@@ -31,7 +30,7 @@ app.prepare().then(() => {
         res.end("Internal Server Error");
         return;
       }
-      handle(req, res); // Continue to the next handler
+      handle(req, res);
     });
   });
 
@@ -40,129 +39,86 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     logger.info(`New client connected: ${socket.id}`);
 
-    // Handle CSV data request from the client
     socket.on("request-csv-data", () => {
       sendCsvDataToClient(socket);
     });
 
-    // Handle Modbus data request from the client
-    socket.on("request-modbus-data", ({ readRange }) => {
-      sendModbusDataToClient(socket, readRange);
+    socket.on("request-modbus-data", async ({ readRange }) => {
+      await sendModbusDataToClient(socket, readRange);
     });
 
-    // Handle writing to Modbus register
-    socket.on("write-modbus-register", ({ index, value }) => {
-      writeModbusRegister(index, value);
-      // After writing, update all clients with new data
-      broadcastModbusData();
+    socket.on("write-modbus-register", async ({ address, value }) => {
+      try {
+        await writeModbusRegister(address, value);
+        logger.info(
+          `Client ${socket.id} wrote value ${value} to register ${address}`
+        );
+        socket.emit("writeSuccess", { address, value });
+      } catch (error) {
+        logger.error(
+          `Error writing to register for client ${socket.id}:`,
+          error
+        );
+        socket.emit("error", {
+          message: "Failed to write to register",
+          details: error.message,
+        });
+      }
     });
   });
 
-  // Start the server and listen on a port
   const PORT = process.env.PORT || 3000;
-  server.listen(PORT, (err) => {
+  server.listen(PORT, async (err) => {
     if (err) {
       logger.error("Server failed to start: %s", err.message);
       throw err;
     }
     logger.info(`> Server ready on http://localhost:${PORT}`);
 
-    // Initialize the serial port service
-    initSerialPort(io); // Pass MockSerialPort to initSerialPort if needed
-
-    // Start monitoring the code file for changes
+    initSerialPort(io);
     watchCodeFile();
+
+    // Initialize Modbus connection once
+    try {
+      await connect();
+      logger.info("Modbus connection initialized");
+    } catch (error) {
+      logger.error("Failed to initialize Modbus connection:", error);
+    }
   });
 
-  // Handle server errors
   server.on("error", (err) => {
     logger.error("Server error: %s", err.message);
   });
 
-  // Handle server close event
   server.on("close", () => {
     logger.info("Server closed");
   });
 
-  // function sendCsvDataToClient(socket) {
-  //   // const currentDate = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
-  //   // const filePath = path.join(__dirname, `../data/${currentDate}.csv`);
+  async function sendModbusDataToClient(socket, readRange) {
+    try {
+      const [start, length] = readRange;
+      logger.info(
+        `Client ${socket.id} requested read: start=${start}, length=${length}`
+      );
 
-  //   const fileName = `${getCurrentDate()}.csv`;
-  //   const filePath = path.join(__dirname, "data", fileName);
+      const registers = await readRegister(start, length);
 
-  //   console.log({ fileName });
-
-  //   try {
-  //     fs.accessSync(filePath, fs.constants.R_OK);
-  //     console.log("File is accessible");
-  //   } catch (err) {
-  //     console.error("File is not accessible:", err);
-  //   }
-
-  //   // console.log({ filePath });
-  //   if (fs.existsSync(filePath)) {
-  //     fs.readFile(filePath, "utf8", (err, data) => {
-  //       if (err) {
-  //         logger.error("Error reading CSV file: ", err.message);
-  //         return;
-  //       }
-
-  //       // Split the data by line breaks to get each row
-  //       const rows = data.trim().split("\n");
-
-  //       // Split each row by commas to get the individual cells, and remove double quotes
-  //       const csvData = rows.map((row) =>
-  //         row.split(",").map((cell) => cell.replace(/"/g, ""))
-  //       );
-
-  //       csvData.reverse(); // Reverse the order to have the latest timestamps first
-
-  //       socket.emit("csv-data", {
-  //         csvData,
-  //       });
-  //       logger.info(`Emitted current date CSV data to client: ${socket.id}`);
-  //     });
-  //   } else {
-  //     logger.info(`No CSV file found for ${fileName}.`);
-  //   }
-  // }
-
-  // New function to send Modbus data to client
-  function sendModbusDataToClient(socket, readRange) {
-    const [start, end] = readRange;
-    // This is where you'd fetch the current state of Modbus registers
-    // For now, we'll send dummy data based on the range
-    const dummyData = {
-      readRegisters: Array(end - start + 1)
-        .fill(0)
-        .map((_, i) => (start + i) * 100),
-    };
-    socket.emit("modbus-data", dummyData);
+      logger.info(
+        `Read successful for client ${socket.id}: ${JSON.stringify(registers)}`
+      );
+      socket.emit("modbus-data", { registers });
+    } catch (error) {
+      logger.error(`Error reading registers for client ${socket.id}:`, error);
+      socket.emit("error", {
+        message: "Failed to read registers",
+        details: error.message,
+      });
+    }
   }
 
-  // New function to handle writing to Modbus register
-  function writeModbusRegister(index, value) {
-    logger.info(`Writing value ${value} to Modbus register ${index}`);
-    // Here you would implement the actual writing to the Modbus register
-    // For now, we'll just log the action
-  }
-
-  // New function to broadcast Modbus data to all clients
-  function broadcastModbusData() {
-    // This function would read the current state of all Modbus registers
-    // and broadcast it to all connected clients
-    const dummyData = {
-      readRegisters: Array(10)
-        .fill(0)
-        .map((_, i) => i * 100),
-    };
-    io.emit("modbus-data", dummyData);
-  }
-
-  // Function to periodically update Modbus data (if needed)
-  function updateModbusData() {
-    broadcastModbusData();
+  async function writeModbusRegister(address, value) {
+    await writeRegister(address, value);
   }
 
   // Set up periodic updates if needed
@@ -179,7 +135,7 @@ app.prepare().then(() => {
       console.log("File is accessible");
     } catch (err) {
       console.error("File is not accessible:", err);
-      return; // Exit the function if the file is not accessible
+      return;
     }
 
     if (fs.existsSync(filePath)) {

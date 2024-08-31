@@ -1,110 +1,99 @@
 import ModbusRTU from "modbus-serial";
-
-const client = new ModbusRTU();
+import logger from "../logger";
+// import logger from '../logger.js';  // Adjust the path as necessary
 
 const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
 const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
 
-async function connect() {
-  try {
-    await client.connectTCP(MODBUS_IP, { port: MODBUS_PORT });
-    client.setID(1); // Set the Modbus slave ID (adjust as needed)
-    console.log(`Connected to Modbus device at ${MODBUS_IP}:${MODBUS_PORT}`);
-  } catch (error) {
-    console.error("Error connecting to Modbus device:", error);
-    throw error; // Let the caller handle the error
+class ModbusConnection {
+  constructor() {
+    this.client = new ModbusRTU();
+    this.isConnected = false;
+    this.reconnectInterval = 5000; // 5 seconds
   }
-}
 
-async function monitorRegisters(startAddress, quantity) {
-  try {
-    let previousValues = [];
+  async connect() {
+    if (this.isConnected) return;
 
-    while (true) {
-      const { data: currentValues } = await client.readHoldingRegisters(
-        startAddress,
-        quantity
+    try {
+      await this.client.connectTCP(MODBUS_IP, { port: MODBUS_PORT });
+      this.client.setID(1); // Set the Modbus slave ID (adjust as needed)
+      this.isConnected = true;
+      logger.info(`Connected to Modbus device at ${MODBUS_IP}:${MODBUS_PORT}`);
+
+      // Set up connection monitoring
+      this.client.socket.on("close", this.handleDisconnect.bind(this));
+    } catch (error) {
+      logger.error("Error connecting to Modbus device:", error);
+      this.scheduleReconnect();
+    }
+  }
+
+  handleDisconnect() {
+    logger.warn("Modbus connection closed. Attempting to reconnect...");
+    this.isConnected = false;
+    this.scheduleReconnect();
+  }
+
+  scheduleReconnect() {
+    setTimeout(() => this.connect(), this.reconnectInterval);
+  }
+
+  async ensureConnection() {
+    if (!this.isConnected) {
+      await this.connect();
+    }
+  }
+
+  async readRegister(address, len) {
+    await this.ensureConnection();
+    try {
+      const { data } = await this.client.readHoldingRegisters(address, len);
+      logger.info(
+        `Read registers starting at address ${address} (length: ${len}): ${data}`
       );
-
-      if (
-        currentValues.some((value, index) => value !== previousValues[index])
-      ) {
-        console.log("Data change detected:", currentValues);
-        previousValues = currentValues;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Adjust polling interval as needed
-    }
-  } catch (error) {
-    console.error("Error monitoring registers:", error);
-    if (error.code === "ETIMEDOUT") {
-      console.warn("Connection timed out, retrying...");
-      await connect(); // Reconnect if connection timed out
-    } else {
-      process.exit(1); // Exit the process if other errors occur
+      return data;
+    } catch (error) {
+      logger.error(`Error reading registers at address ${address}:`, error);
+      this.handleError(error);
+      throw error;
     }
   }
-}
 
-// Function to convert an array of register values to ASCII characters with the correct byte order
-function convertToASCII(registerValues) {
-  let asciiString = "";
-  registerValues.forEach((value) => {
-    // Extract the two bytes from the 16-bit register
-    const lowByte = value & 0xff; // Low byte (first)
-    const highByte = (value >> 8) & 0xff; // High byte (second)
+  async writeRegister(address, value) {
+    await this.ensureConnection();
+    try {
+      await this.client.writeRegister(address, value);
+      logger.info(
+        `Successfully wrote value ${value} to register at address ${address}`
+      );
+    } catch (error) {
+      logger.error(`Error writing to register at address ${address}:`, error);
+      this.handleError(error);
+      throw error;
+    }
+  }
 
-    // Convert bytes to characters and append to the final ASCII string
-    asciiString += String.fromCharCode(lowByte) + String.fromCharCode(highByte);
-  });
-  return asciiString;
-}
-
-async function readRegisterAndProvideASCII(address, len) {
-  try {
-    const { data } = await client.readHoldingRegisters(address, len);
-    const asciiString = convertToASCII(data);
-    console.log(
-      `Read registers starting at address ${address} (length: ${len}): ${data} (ASCII: ${asciiString})`
-    );
-    return asciiString;
-  } catch (error) {
-    console.error(`Error reading registers at address ${address}:`, error);
-    throw error;
+  handleError(error) {
+    if (error.errno === "ETIMEDOUT" || error.errno === "ECONNRESET") {
+      logger.warn(`Connection error: ${error.errno}. Scheduling reconnect.`);
+      this.isConnected = false;
+      this.scheduleReconnect();
+    }
   }
 }
 
-// without ascii conversion
-async function readRegister(address, len) {
-  try {
-    const { data } = await client.readHoldingRegisters(address, len);
-    // const asciiString = convertToASCII(data);
-    console.log(
-      `Read registers starting at address ${address} (length: ${len}): ${data})`
-    );
-    return data;
-  } catch (error) {
-    console.error(`Error reading registers at address ${address}:`, error);
-    throw error;
-  }
-}
+const modbusConnection = new ModbusConnection();
 
-async function writeRegister(address, value) {
-  try {
-    await client.writeRegister(address, value);
-    console.log(
-      `Successfully wrote value ${value} to register at address ${address}`
-    );
-  } catch (error) {
-    console.error(`Error writing to register at address ${address}:`, error);
-    throw error;
-  }
-}
-
-export {
-  connect,
-  monitorRegisters,
-  readRegister,
-  writeRegister,
-  readRegisterAndProvideASCII,
+export const connect = () => modbusConnection.connect();
+export const readRegister = (address, len) =>
+  modbusConnection.readRegister(address, len);
+export const writeRegister = (address, value) =>
+  modbusConnection.writeRegister(address, value);
+export const readRegisterAndProvideASCII = async (address, len) => {
+  const data = await modbusConnection.readRegister(address, len);
+  return modbusConnection.convertToASCII(data);
 };
+
+// Initialize the connection when this module is imported
+// connect();

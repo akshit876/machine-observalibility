@@ -28,7 +28,7 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
     return () => {
       socket.off("modbus-data", handleModbusData);
     };
-  }, [socket, readRange]);
+  }, []);
 
   const handleWriteChange = useCallback((index, value) => {
     const newValue = parseInt(value, 10) || 0;

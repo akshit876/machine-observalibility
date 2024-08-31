@@ -6,13 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useModbus } from "../../hooks/useModbus";
-// import { useModbus } from "@/hooks/useModbus";
+
+const readStart = parseInt(process.env.NEXT_PUBLIC_READ_START || "300", 10);
+const readEnd = parseInt(process.env.NEXT_PUBLIC_READ_END || "315", 10);
+const writeStart = parseInt(process.env.NEXT_PUBLIC_WRITE_START || "320", 10);
+const writeEnd = parseInt(process.env.NEXT_PUBLIC_WRITE_END || "335", 10);
 
 const ModbusUI = () => {
   const { readRegisters, writeRegisters, handleWriteChange, handleWrite } =
     useModbus({
-      readRange: [300, 15],
-      writeRange: [320, 15],
+      readRange: [readStart, readEnd - readStart + 1],
+      writeRange: [writeStart, writeEnd - writeStart + 1],
     });
 
   return (
