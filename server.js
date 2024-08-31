@@ -107,7 +107,8 @@ app.prepare().then(() => {
         `Client ${socket.id} requested read: start=${start}, length=${length}`
       );
 
-      const registers = await readRegister(start, length);
+      // const registers = await readRegister(start, length);
+      const registers = await readRegister(start, length - start + 1);
 
       logger.info(
         `Read successful for client ${socket.id}: ${JSON.stringify(registers)}`

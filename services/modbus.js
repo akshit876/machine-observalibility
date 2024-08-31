@@ -31,7 +31,7 @@ class ModbusConnection {
       logger.info(`Connected to Modbus device at ${MODBUS_IP}:${MODBUS_PORT}`);
 
       // Set up connection monitoring
-      this.client.socket.on("close", this.handleDisconnect.bind(this));
+      // this.client.socket.on("close", this.handleDisconnect.bind(this));
     } catch (error) {
       logger.error("Error connecting to Modbus device:", error);
       this.scheduleReconnect();
