@@ -1,17 +1,11 @@
-const Modbus = require("modbus-serial");
+import ModbusRTU from "modbus-serial";
 
-const modbus = new Modbus();
+const client = new ModbusRTU();
 
 async function connect() {
   try {
-    await modbus.connect({
-      port: "192.168.0.100", // Replace with your Modbus device's IP address
-      baudrate: 9600,
-      parity: "none",
-      stopBits: 1,
-      dataBits: 8,
-    });
-
+    await client.connectTCP("192.168.0.100", { port: 502 }); // Replace with your Modbus device's IP address and port
+    client.setID(1); // Set the Modbus slave ID (adjust as needed)
     console.log("Connected to Modbus device");
   } catch (error) {
     console.error("Error connecting to Modbus device:", error);
@@ -24,7 +18,7 @@ async function monitorRegisters(startAddress, quantity) {
     let previousValues = [];
 
     while (true) {
-      const currentValues = await modbus.readHoldingRegisters(
+      const { data: currentValues } = await client.readHoldingRegisters(
         startAddress,
         quantity
       );
@@ -40,7 +34,6 @@ async function monitorRegisters(startAddress, quantity) {
     }
   } catch (error) {
     console.error("Error monitoring registers:", error);
-    // Handle specific errors or retry
     if (error.code === "ETIMEDOUT") {
       console.warn("Connection timed out, retrying...");
       await connect(); // Reconnect if connection timed out
@@ -52,8 +45,8 @@ async function monitorRegisters(startAddress, quantity) {
 
 async function readRegister(address) {
   try {
-    const result = await modbus.readHoldingRegisters(address, 1);
-    return result.data[0];
+    const { data } = await client.readHoldingRegisters(address, 1);
+    return data[0];
   } catch (error) {
     console.error(`Error reading register at address ${address}:`, error);
     throw error;
@@ -62,7 +55,7 @@ async function readRegister(address) {
 
 async function writeRegister(address, value) {
   try {
-    await modbus.writeRegister(address, value);
+    await client.writeRegister(address, value);
     console.log(
       `Successfully wrote value ${value} to register at address ${address}`
     );
@@ -72,4 +65,4 @@ async function writeRegister(address, value) {
   }
 }
 
-module.exports = { connect, monitorRegisters, readRegister, writeRegister };
+export { connect, monitorRegisters, readRegister, writeRegister };
