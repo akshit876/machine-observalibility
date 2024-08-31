@@ -15,8 +15,8 @@ const writeEnd = parseInt(process.env.NEXT_PUBLIC_WRITE_END || "335", 10);
 const ModbusUI = () => {
   const { readRegisters, writeRegisters, handleWriteChange, handleWrite } =
     useModbus({
-      readRange: [readStart, readEnd - readStart + 1],
-      writeRange: [writeStart, writeEnd - writeStart + 1],
+      readRange: [readStart, readEnd],
+      writeRange: [writeStart, writeEnd],
     });
 
   return (
