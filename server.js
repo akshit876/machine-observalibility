@@ -18,6 +18,11 @@ const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
+const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
+const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
+
+console.log({ MODBUS_IP, MODBUS_PORT });
+
 app.prepare().then(() => {
   const server = createServer((req, res) => {
     morgan("combined", {

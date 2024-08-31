@@ -2,8 +2,16 @@ import ModbusRTU from "modbus-serial";
 import logger from "../logger";
 // import logger from '../logger.js';  // Adjust the path as necessary
 
-const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
-const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
+// Default values
+const DEFAULT_MODBUS_IP = "192.168.3.145";
+const DEFAULT_MODBUS_PORT = 502;
+
+// const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
+// const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
+
+// Try to get values from env, use defaults if not available
+const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP || DEFAULT_MODBUS_IP;
+const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10) || DEFAULT_MODBUS_PORT;
 
 class ModbusConnection {
   constructor() {
