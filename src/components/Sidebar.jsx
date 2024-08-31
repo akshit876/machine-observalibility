@@ -17,7 +17,7 @@ const Sidebar = () => {
   const menuItems = [
     { name: "Dashboard", icon: <FaHome />, href: "/" },
     { name: "Settings", icon: <FaChartBar />, href: "/widgets" },
-    { name: "PLC", icon: <FaCogs />, href: "/plc-manual" },
+    { name: "PLC", icon: <FaCogs />, href: "/plc" },
     { name: "Reports", icon: <FaTable />, href: "/ui-elements" },
     { name: "Advanced", icon: <FaBell />, href: "/advanced-ui" },
     // { name: "Calendar", icon: <FaCalendar />, href: "/calendar" },
