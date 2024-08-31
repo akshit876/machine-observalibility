@@ -22,9 +22,8 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
 
     const handleModbusData = (data) => {
       // Assuming the data structure matches what's sent from the server
-      setReadRegisters(data.readRegisters || Array(10).fill(0));
+      setReadRegisters(data.registers || Array(10).fill(0));
     };
-
     // Request initial Modbus data
     // socket.emit("request-modbus-data", { readRange });
 
