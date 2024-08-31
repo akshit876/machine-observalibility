@@ -3,7 +3,7 @@ import {
   getData,
   deleteData,
   getAllData,
-} from "./services/lowDbService.js";
+} from "../services/lowDbService.js";
 
 async function testDatabase() {
   try {
