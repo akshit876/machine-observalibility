@@ -20,7 +20,7 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
     };
 
     // Request initial Modbus data
-    socket.emit("request-modbus-data");
+    socket.emit("request-modbus-data", { readRange });
 
     // Listen for Modbus data updates
     socket.on("modbus-data", handleModbusData);
@@ -28,7 +28,7 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
     return () => {
       socket.off("modbus-data", handleModbusData);
     };
-  }, [socket]);
+  }, [socket, readRange]);
 
   const handleWriteChange = useCallback((index, value) => {
     const newValue = parseInt(value, 10) || 0;
@@ -43,12 +43,12 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
     (index) => {
       if (socket) {
         socket.emit("write-modbus-register", {
-          index,
+          index: writeRange[0] + index,
           value: writeRegisters[index],
         });
       }
     },
-    [socket, writeRegisters]
+    [socket, writeRegisters, writeRange]
   );
 
   return {
