@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 "use client";
 
 import React from "react";
@@ -33,7 +34,7 @@ const ModbusUI = () => {
     },
   });
 
-  console.log({readRegisters});
+  console.log({ readRegisters });
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
@@ -43,14 +44,20 @@ const ModbusUI = () => {
           <Button onClick={refreshReadRegisters}>Refresh</Button>
         </CardHeader>
         <CardContent>
-          {readRegisters?.bits && Object.entries(readRegisters?.bits)?.map(([k,v], index) => (
-            <div key={`read-${index}`} className="mb-2">
-              <Label>
-                {`Register ${readRegisters?.register} -> Bit [${k}]`}
-              </Label>
-              <Input type="text" value={Number(v)} readOnly className={`${v==0?'bg-red':'bg-green'}`}/>
-            </div>
-          ))}
+          {readRegisters?.bits &&
+            Object.entries(readRegisters?.bits)?.map(([k, v], index) => (
+              <div key={`read-${index}`} className="mb-2">
+                <Label>
+                  {`Register ${readRegisters?.register} -> Bit [${k}]`}
+                </Label>
+                <Input
+                  type="text"
+                  value={Number(v)}
+                  readOnly
+                  className={`${v === 0 ? "bg-red-500" : v === 1 ? "bg-green-500" : ""}`}
+                />
+              </div>
+            ))}
         </CardContent>
       </Card>
       <Card>
