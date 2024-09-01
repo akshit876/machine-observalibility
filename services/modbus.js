@@ -86,10 +86,8 @@ class ModbusConnection {
   async readBit(address, bitPosition) {
     await this.ensureConnection();
     try {
-      const [registerValue] = await this.client.readHoldingRegisters(
-        address,
-        1
-      );
+      const result = await this.client.readHoldingRegisters(address, 1);
+      const registerValue = result.data[0]; // Access the first element of the data array
       const bitValue = (registerValue & (1 << bitPosition)) !== 0;
       logger.info(
         `Read bit ${bitPosition} from register ${address}: ${bitValue}`
@@ -98,6 +96,31 @@ class ModbusConnection {
     } catch (error) {
       logger.error(
         `Error reading bit ${bitPosition} from register ${address}:`,
+        error
+      );
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async readBits(address, bitPositions) {
+    await this.ensureConnection();
+    try {
+      const result = await this.client.readHoldingRegisters(address, 1);
+      const registerValue = result.data[0];
+
+      const bitValues = bitPositions.map((bitPosition) => {
+        const bitValue = (registerValue & (1 << bitPosition)) !== 0;
+        return { position: bitPosition, value: bitValue };
+      });
+
+      logger.info(
+        `Read bits ${bitPositions.join(", ")} from register ${address}: ${JSON.stringify(bitValues)}`
+      );
+      return bitValues;
+    } catch (error) {
+      logger.error(
+        `Error reading bits ${bitPositions.join(", ")} from register ${address}:`,
         error
       );
       this.handleError(error);
