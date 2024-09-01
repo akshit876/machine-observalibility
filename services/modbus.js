@@ -179,6 +179,8 @@ export const readBit = (address, bitPosition) =>
   modbusConnection.readBit(address, bitPosition);
 export const writeBit = (address, bitPosition, value) =>
   modbusConnection.writeBit(address, bitPosition, value);
+export const readBits = (address, bitPositions) =>
+  modbusConnection.readBits(address, bitPositions);
 
 // Initialize the connection when this module is imported
 // connect();
