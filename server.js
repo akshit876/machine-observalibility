@@ -16,6 +16,7 @@ import {
   writeBit,
   writeRegister,
 } from "./services/modbus.js";
+import { manualRun } from "./services/manualRunService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -101,6 +102,23 @@ app.prepare().then(() => {
         );
         socket.emit("error", {
           message: "Failed to write to register",
+          details: error.message,
+        });
+      }
+    });
+
+    socket.on("manual-run", async (operation) => {
+      try {
+        const result = await manualRun(operation);
+        logger.info(`Client ${socket.id} triggered manual run: ${operation}`);
+        socket.emit("manualRunSuccess", { operation, result });
+      } catch (error) {
+        logger.error(
+          `Error executing manual run for client ${socket.id}:`,
+          error
+        );
+        socket.emit("error", {
+          message: "Failed to execute manual run",
           details: error.message,
         });
       }

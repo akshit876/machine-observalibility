@@ -1,234 +1,142 @@
 /* eslint-disable no-nested-ternary */
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useModbus } from "../../hooks/useModbus";
+import { useSocket } from "@/SocketContext";
+import {
+  MODBUS_ADDRESSES,
+  MODBUS_BITS,
+  SECTION_LABELS,
+  MANUAL_RUN_OPERATIONS,
+} from "@/constants";
 
 const sections = [
   {
     title: "Input",
-    readStart: parseInt(process.env.NEXT_PUBLIC_READ_START_1 || "300", 10),
-    readEnd: parseInt(process.env.NEXT_PUBLIC_READ_END_1 || "315", 10),
-    readBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
-    labels: [
-      "Start pushbutton -1",
-      "Start pushbutton - 2",
-      "Emergency Stop push button",
-      "Safety Sensor",
-      "Marking Complete",
-      "Part Presence",
-      "Scanner Read OK",
-      "Read OCR OK",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-    ],
-    readOnly: true, // Only read functionality
+    readStart: MODBUS_ADDRESSES.INPUT_START,
+    readBits: MODBUS_BITS.INPUT,
+    labels: SECTION_LABELS.INPUT,
   },
   {
     title: "Output",
-    writeStart: parseInt(process.env.NEXT_PUBLIC_WRITE_START_2 || "340", 10),
-    writeEnd: parseInt(process.env.NEXT_PUBLIC_WRITE_END_2 || "355", 10),
-    writeBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
-    labels: [
-      "Marking Start",
-      "Scanner Trigger",
-      "OCR Camera Trigger",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Tower Light Red",
-      "Tower Light Green",
-      "Tower Light Yellow",
-      "Work Light",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-    ],
-    readOnly: false, // Only write functionality
+    readStart: MODBUS_ADDRESSES.OUTPUT_START,
+    readBits: MODBUS_BITS.OUTPUT,
+    labels: SECTION_LABELS.OUTPUT,
   },
   {
     title: "Software and PLC Input Status",
-    readStart: parseInt(process.env.NEXT_PUBLIC_READ_START_3 || "340", 10),
-    readEnd: parseInt(process.env.NEXT_PUBLIC_READ_END_3 || "355", 10),
-    readBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
-    labels: [
-      "scanner data receive ok",
-      "data sent to laser text file",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-    ],
-    readOnly: true, // Only read functionality
+    readStart: MODBUS_ADDRESSES.SOFTWARE_PLC_INPUT_START,
+    readBits: MODBUS_BITS.SOFTWARE_PLC_INPUT,
+    labels: SECTION_LABELS.SOFTWARE_PLC_INPUT,
   },
   {
     title: "Software and PLC Output Status",
-    writeStart: parseInt(process.env.NEXT_PUBLIC_WRITE_START_4 || "380", 10),
-    writeEnd: parseInt(process.env.NEXT_PUBLIC_WRITE_END_4 || "395", 10),
-    writeBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
-    labels: [
-      "Marking start",
-      "Scanner Trigger",
-      "OCR Trigger",
-      "Work Light",
-      "Servo home",
-      "Servo Scanner position",
-      "Servo OCR Position",
-      "Servo Marking Position",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-      "Spare",
-    ],
-    readOnly: false, // Only write functionality
+    readStart: MODBUS_ADDRESSES.SOFTWARE_PLC_OUTPUT_START,
+    readBits: MODBUS_BITS.SOFTWARE_PLC_OUTPUT,
+    labels: SECTION_LABELS.SOFTWARE_PLC_OUTPUT,
   },
 ];
 
-const useModbusSection = (
-  readStart,
-  readBits,
-  writeStart,
-  writeBits,
-  readOnly
-) => {
-  const {
-    readRegisters,
-    writeRegisters,
-    handleWriteChange,
-    handleWrite,
-    refreshReadRegisters,
-  } = useModbus({
-    readRange: readStart ? { register: readStart, bits: readBits } : undefined,
-    writeRange: writeStart
-      ? { register: writeStart, bits: writeBits }
-      : undefined,
-    readOnly,
+const useModbusSection = (readStart, readBits) => {
+  const { readRegisters, refreshReadRegisters } = useModbus({
+    readRange: { register: readStart, bits: readBits },
+    readOnly: true,
   });
 
-  return {
-    readRegisters,
-    writeRegisters,
-    handleWriteChange,
-    handleWrite,
-    refreshReadRegisters,
-  };
+  return { readRegisters, refreshReadRegisters };
 };
 
 const ModbusUI = () => {
-  const [writeValues, setWriteValues] = useState({});
+  const socket = useSocket();
 
-  const handleInputChange = (index, value) => {
-    setWriteValues((prev) => ({
-      ...prev,
-      [index]: value,
-    }));
+  const handleManualRun = (operation) => {
+    if (socket) {
+      socket.emit("manual-run", operation);
+    }
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {sections.map((section, sectionIndex) => {
-        const {
-          readRegisters,
-          writeRegisters,
-          handleWriteChange,
-          handleWrite,
-          refreshReadRegisters,
-        } = useModbusSection(
-          section.readStart,
-          section.readBits,
-          section.writeStart,
-          section.writeBits,
-          section.readOnly
-        );
+    <div className="container mx-auto p-6 space-y-8">
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Modbus PLC Control Panel
+      </h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {sections.map((section, sectionIndex) => {
+          const { readRegisters, refreshReadRegisters } = useModbusSection(
+            section.readStart,
+            section.readBits
+          );
 
-        return (
-          <Card key={sectionIndex}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle>{section.title}</CardTitle>
-              {section.readOnly && (
-                <Button onClick={refreshReadRegisters}>Refresh</Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {section.readOnly &&
-                readRegisters?.bits &&
-                Object.entries(readRegisters?.bits)?.map(([k, v], index) => (
-                  <div key={`read-${sectionIndex}-${index}`} className="mb-2">
-                    <Label className='text-1xl font-bold '>{section.labels[index]}</Label>
-                    <Input
-                      type="text"
-                      value={Number(v)}
-                      readOnly
-                      className="p-2"
-                      style={{
-                        backgroundColor:
-                          Number(v) === 0
-                            ? "red"
-                            : Number(v) === 1
-                              ? "green"
-                              : "white",
-                        color: "white",
-                        fontWeight: "bold",
-                      }}
-                    />
-                  </div>
-                ))}
-              {!section.readOnly &&
-                section.writeBits.map((bit, index) => (
-                  <div
-                    key={`write-${sectionIndex}-${index}`}
-                    className="mb-4 flex items-center space-x-2"
-                  >
-                    <Label className='text-1xl font-bold '>{section.labels[index]}</Label>
-                    <Input
-                      type="number"
-                      value={writeValues[index] || ""}
-                      onChange={(e) => handleInputChange(index, e.target.value)}
-                      className="flex-grow"
-                    />
-                    <Button
-                      onClick={() =>
-                        handleWrite({
-                          address: section.writeStart,
-                          bit,
-                          value: writeValues[index],
-                        })
-                      }
-                    >
-                      Write
-                    </Button>
-                  </div>
-                ))}
-            </CardContent>
-          </Card>
-        );
-      })}
+          return (
+            <Card key={sectionIndex} className="shadow-lg">
+              <CardHeader className="bg-gray-100">
+                <CardTitle className="text-lg font-semibold">
+                  {section.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  {readRegisters?.bits &&
+                    Object.entries(readRegisters?.bits)?.map(
+                      ([k, v], index) => (
+                        <div
+                          key={`read-${sectionIndex}-${index}`}
+                          className="flex items-center space-x-2"
+                        >
+                          <Label className="w-1/2 text-sm">
+                            {section.labels[index]}
+                          </Label>
+                          <Input
+                            type="text"
+                            value={Number(v)}
+                            readOnly
+                            className="w-1/2 text-center font-bold"
+                            style={{
+                              backgroundColor:
+                                Number(v) === 0
+                                  ? "#FCA5A5"
+                                  : Number(v) === 1
+                                    ? "#86EFAC"
+                                    : "white",
+                              color:
+                                Number(v) === 0 || Number(v) === 1
+                                  ? "white"
+                                  : "black",
+                            }}
+                          />
+                        </div>
+                      )
+                    )}
+                </div>
+                <Button onClick={refreshReadRegisters} className="mt-4 w-full">
+                  Refresh
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold text-center mb-4">
+          Manual Operations
+        </h2>
+        <div className="flex flex-wrap justify-center gap-4">
+          {MANUAL_RUN_OPERATIONS.map((op, index) => (
+            <Button
+              key={index}
+              onClick={() => handleManualRun(op.operation)}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+            >
+              {op.name}
+            </Button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
