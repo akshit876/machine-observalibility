@@ -110,7 +110,13 @@ const sections = [
   },
 ];
 
-const useModbusSection = (readStart, readBits, writeStart, writeBits) => {
+const useModbusSection = (
+  readStart,
+  readBits,
+  writeStart,
+  writeBits,
+  readOnly
+) => {
   const {
     readRegisters,
     writeRegisters,
@@ -122,6 +128,7 @@ const useModbusSection = (readStart, readBits, writeStart, writeBits) => {
     writeRange: writeStart
       ? { register: writeStart, bits: writeBits }
       : undefined,
+    readOnly,
   });
 
   return {
@@ -156,7 +163,8 @@ const ModbusUI = () => {
           section.readStart,
           section.readBits,
           section.writeStart,
-          section.writeBits
+          section.writeBits,
+          section.readOnly
         );
 
         return (

@@ -2,33 +2,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSocket } from "@/SocketContext";
 
-export function useModbus({
-  readRange = {
-    register: 100,
-    bits: [0, 2, 5],
-  },
-  writeRange = {
-    register: 100,
-    bits: [0, 2, 5],
-  },
-}) {
+export function useModbus({ readRange, writeRange, readOnly = false }) {
   const [readRegisters, setReadRegisters] = useState({});
   const [writeRegisters, setWriteRegisters] = useState({});
   const [refresh, setRefresh] = useState(false);
   const socket = useSocket(); // Get the socket instance from context
 
   const fetchReadRegisters = useCallback(() => {
-    if (socket) {
+    if (socket && readOnly) {
       socket.emit("request-modbus-data", {
         register: readRange.register,
         bits: readRange.bits,
         interval: 500,
       });
     }
-  }, [refresh]);
+  }, [refresh, readOnly]);
 
   useEffect(() => {
-    if (!socket) return; // Ensure the socket is available
+    if (!socket || !readOnly) return; // Ensure the socket is available and readOnly is true
 
     const handleModbusData = ({ register, value, bits }) => {
       // Assuming the data structure matches what's sent from the server
@@ -37,8 +28,6 @@ export function useModbus({
       console.log("Bit values:", bits);
       setReadRegisters({ register, value, bits } || {});
     };
-    // Request initial Modbus data
-    // socket.emit("request-modbus-data", { readRange });
 
     // Listen for Modbus data updates
     socket.on("modbus-data", handleModbusData);
@@ -47,7 +36,7 @@ export function useModbus({
     return () => {
       socket.off("modbus-data", handleModbusData);
     };
-  }, [fetchReadRegisters]);
+  }, [fetchReadRegisters, readOnly]);
 
   const refreshReadRegisters = () => {
     setRefresh(true);
@@ -65,7 +54,7 @@ export function useModbus({
   }, []);
 
   const handleWrite = useCallback(
-    ({ address, bit, value }) => {
+    (address, bit, value) => {
       if (socket) {
         socket.emit("write-modbus-register", {
           address,
@@ -74,7 +63,7 @@ export function useModbus({
         });
       }
     },
-    [socket, writeRegisters, writeRange]
+    [socket]
   );
 
   return {
