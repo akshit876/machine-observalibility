@@ -33,6 +33,8 @@ const ModbusUI = () => {
     },
   });
 
+  console.log({readRegisters});
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
       <Card>
@@ -41,12 +43,12 @@ const ModbusUI = () => {
           <Button onClick={refreshReadRegisters}>Refresh</Button>
         </CardHeader>
         <CardContent>
-          {readRegisters.map((value, index) => (
+          {readRegisters?.bits && Object.entries(readRegisters?.bits)?.map(([k,v], index) => (
             <div key={`read-${index}`} className="mb-2">
               <Label>
-                Register <strong>{readbits[index]}</strong>
+                {`Register ${readRegisters?.register} -> Bit [${k}]`}
               </Label>
-              <Input type="text" value={value} readOnly />
+              <Input type="text" value={Number(v)} readOnly className={`${v==0?'bg-red':'bg-green'}`}/>
             </div>
           ))}
         </CardContent>
@@ -56,7 +58,7 @@ const ModbusUI = () => {
           <CardTitle>Write Registers</CardTitle>
         </CardHeader>
         <CardContent>
-          {writeRegisters.map((value, index) => (
+          {/* {writeRegisters.map((value, index) => (
             <div
               key={`write-${index}`}
               className="mb-4 flex items-center space-x-2"
@@ -72,7 +74,7 @@ const ModbusUI = () => {
               />
               <Button onClick={() => handleWrite(index)}>Write</Button>
             </div>
-          ))}
+          ))} */}
         </CardContent>
       </Card>
     </div>

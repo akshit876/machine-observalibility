@@ -13,10 +13,10 @@ export function useModbus({
   },
 }) {
   const [readRegisters, setReadRegisters] = useState(
-    Array(readRange.bits.length).fill(0)
+    {}
   );
   const [writeRegisters, setWriteRegisters] = useState(
-    Array(writeRange.bits.length).fill(0)
+    {}
   );
   const [refresh, setRefresh] = useState(false);
   const socket = useSocket(); // Get the socket instance from context
@@ -39,7 +39,7 @@ export function useModbus({
       console.log(`Received data for register ${register}:`);
       console.log(`Full register value: ${value}`);
       console.log("Bit values:", bits);
-      setReadRegisters(bits || Array(10).fill(0));
+      setReadRegisters({ register, value, bits } || {});
     };
     // Request initial Modbus data
     // socket.emit("request-modbus-data", { readRange });
