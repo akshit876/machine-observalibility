@@ -54,7 +54,7 @@ const ModbusUI = () => {
                   type="text"
                   value={Number(v)}
                   readOnly
-                  className={`${v === 0 ? "bg-red-500" : v === 1 ? "bg-green-500" : ""}`}
+                  className={`${Number(v) === 0 ? "bg-red-500" : Number(v) === 1 ? "bg-green-500" : ""}`}
                 />
               </div>
             ))}
