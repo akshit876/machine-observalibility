@@ -151,7 +151,7 @@ const ModbusUI = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {sections.map((section, sectionIndex) => {
         const {
           readRegisters,
@@ -180,7 +180,7 @@ const ModbusUI = () => {
                 readRegisters?.bits &&
                 Object.entries(readRegisters?.bits)?.map(([k, v], index) => (
                   <div key={`read-${sectionIndex}-${index}`} className="mb-2">
-                    <Label>{section.labels[index]}</Label>
+                    <Label className='text-1xl font-bold '>{section.labels[index]}</Label>
                     <Input
                       type="text"
                       value={Number(v)}
@@ -205,7 +205,7 @@ const ModbusUI = () => {
                     key={`write-${sectionIndex}-${index}`}
                     className="mb-4 flex items-center space-x-2"
                   >
-                    <Label>{section.labels[index]}</Label>
+                    <Label className='text-1xl font-bold '>{section.labels[index]}</Label>
                     <Input
                       type="number"
                       value={writeValues[index] || ""}
