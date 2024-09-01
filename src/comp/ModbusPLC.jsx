@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,7 @@ const sections = [
     title: "Input",
     readStart: parseInt(process.env.NEXT_PUBLIC_READ_START_1 || "300", 10),
     readEnd: parseInt(process.env.NEXT_PUBLIC_READ_END_1 || "315", 10),
-    writeStart: parseInt(process.env.NEXT_PUBLIC_WRITE_START_1 || "320", 10),
-    writeEnd: parseInt(process.env.NEXT_PUBLIC_WRITE_END_1 || "335", 10),
-    readBits: Array.from({ length: 16 }, (_, i) => i),
-    writeBits: Array.from({ length: 16 }, (_, i) => i),
+    readBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
     labels: [
       "Start pushbutton -1",
       "Start pushbutton - 2",
@@ -35,15 +32,13 @@ const sections = [
       "Spare",
       "Spare",
     ],
+    readOnly: true, // Only read functionality
   },
   {
     title: "Output",
-    readStart: parseInt(process.env.NEXT_PUBLIC_READ_START_2 || "320", 10),
-    readEnd: parseInt(process.env.NEXT_PUBLIC_READ_END_2 || "335", 10),
     writeStart: parseInt(process.env.NEXT_PUBLIC_WRITE_START_2 || "340", 10),
     writeEnd: parseInt(process.env.NEXT_PUBLIC_WRITE_END_2 || "355", 10),
-    readBits: Array.from({ length: 16 }, (_, i) => i),
-    writeBits: Array.from({ length: 16 }, (_, i) => i),
+    writeBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
     labels: [
       "Marking Start",
       "Scanner Trigger",
@@ -61,15 +56,13 @@ const sections = [
       "Spare",
       "Spare",
     ],
+    readOnly: false, // Only write functionality
   },
   {
     title: "Software and PLC Input Status",
     readStart: parseInt(process.env.NEXT_PUBLIC_READ_START_3 || "340", 10),
     readEnd: parseInt(process.env.NEXT_PUBLIC_READ_END_3 || "355", 10),
-    writeStart: parseInt(process.env.NEXT_PUBLIC_WRITE_START_3 || "360", 10),
-    writeEnd: parseInt(process.env.NEXT_PUBLIC_WRITE_END_3 || "375", 10),
-    readBits: Array.from({ length: 16 }, (_, i) => i),
-    writeBits: Array.from({ length: 16 }, (_, i) => i),
+    readBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
     labels: [
       "scanner data receive ok",
       "data sent to laser text file",
@@ -88,15 +81,13 @@ const sections = [
       "Spare",
       "Spare",
     ],
+    readOnly: true, // Only read functionality
   },
   {
     title: "Software and PLC Output Status",
-    readStart: parseInt(process.env.NEXT_PUBLIC_READ_START_4 || "360", 10),
-    readEnd: parseInt(process.env.NEXT_PUBLIC_READ_END_4 || "375", 10),
     writeStart: parseInt(process.env.NEXT_PUBLIC_WRITE_START_4 || "380", 10),
     writeEnd: parseInt(process.env.NEXT_PUBLIC_WRITE_END_4 || "395", 10),
-    readBits: Array.from({ length: 16 }, (_, i) => i),
-    writeBits: Array.from({ length: 16 }, (_, i) => i),
+    writeBits: Array.from({ length: 16 }, (_, i) => i), // Bits 0 to 15
     labels: [
       "Marking start",
       "Scanner Trigger",
@@ -115,6 +106,7 @@ const sections = [
       "Spare",
       "Spare",
     ],
+    readOnly: false, // Only write functionality
   },
 ];
 
@@ -126,14 +118,10 @@ const useModbusSection = (readStart, readBits, writeStart, writeBits) => {
     handleWrite,
     refreshReadRegisters,
   } = useModbus({
-    readRange: {
-      register: readStart,
-      bits: readBits,
-    },
-    writeRange: {
-      register: writeStart,
-      bits: writeBits,
-    },
+    readRange: readStart ? { register: readStart, bits: readBits } : undefined,
+    writeRange: writeStart
+      ? { register: writeStart, bits: writeBits }
+      : undefined,
   });
 
   return {
@@ -146,6 +134,15 @@ const useModbusSection = (readStart, readBits, writeStart, writeBits) => {
 };
 
 const ModbusUI = () => {
+  const [writeValues, setWriteValues] = useState({});
+
+  const handleInputChange = (index, value) => {
+    setWriteValues((prev) => ({
+      ...prev,
+      [index]: value,
+    }));
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
       {sections.map((section, sectionIndex) => {
@@ -166,10 +163,13 @@ const ModbusUI = () => {
           <Card key={sectionIndex}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>{section.title}</CardTitle>
-              <Button onClick={refreshReadRegisters}>Refresh</Button>
+              {section.readOnly && (
+                <Button onClick={refreshReadRegisters}>Refresh</Button>
+              )}
             </CardHeader>
             <CardContent>
-              {readRegisters?.bits &&
+              {section.readOnly &&
+                readRegisters?.bits &&
                 Object.entries(readRegisters?.bits)?.map(([k, v], index) => (
                   <div key={`read-${sectionIndex}-${index}`} className="mb-2">
                     <Label>{section.labels[index]}</Label>
@@ -191,21 +191,32 @@ const ModbusUI = () => {
                     />
                   </div>
                 ))}
-              {writeRegisters?.map((value, index) => (
-                <div
-                  key={`write-${sectionIndex}-${index}`}
-                  className="mb-4 flex items-center space-x-2"
-                >
-                  <Label>{`Register ${section.writeStart + index}`}</Label>
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => handleWriteChange(index, e.target.value)}
-                    className="flex-grow"
-                  />
-                  <Button onClick={() => handleWrite(index)}>Write</Button>
-                </div>
-              ))}
+              {!section.readOnly &&
+                section.writeBits.map((bit, index) => (
+                  <div
+                    key={`write-${sectionIndex}-${index}`}
+                    className="mb-4 flex items-center space-x-2"
+                  >
+                    <Label>{section.labels[index]}</Label>
+                    <Input
+                      type="number"
+                      value={writeValues[index] || ""}
+                      onChange={(e) => handleInputChange(index, e.target.value)}
+                      className="flex-grow"
+                    />
+                    <Button
+                      onClick={() =>
+                        handleWrite({
+                          address: section.writeStart,
+                          bit,
+                          value: writeValues[index],
+                        })
+                      }
+                    >
+                      Write
+                    </Button>
+                  </div>
+                ))}
             </CardContent>
           </Card>
         );

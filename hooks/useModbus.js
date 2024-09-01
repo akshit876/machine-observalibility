@@ -12,12 +12,8 @@ export function useModbus({
     bits: [0, 2, 5],
   },
 }) {
-  const [readRegisters, setReadRegisters] = useState(
-    {}
-  );
-  const [writeRegisters, setWriteRegisters] = useState(
-    {}
-  );
+  const [readRegisters, setReadRegisters] = useState({});
+  const [writeRegisters, setWriteRegisters] = useState({});
   const [refresh, setRefresh] = useState(false);
   const socket = useSocket(); // Get the socket instance from context
 
@@ -69,11 +65,12 @@ export function useModbus({
   }, []);
 
   const handleWrite = useCallback(
-    (index) => {
+    ({ address, bit, value }) => {
       if (socket) {
         socket.emit("write-modbus-register", {
-          address: writeRange.register + index,
-          value: writeRegisters[index],
+          address,
+          bit,
+          value,
         });
       }
     },

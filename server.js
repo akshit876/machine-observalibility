@@ -13,6 +13,7 @@ import {
   connect,
   readBit,
   readRegister,
+  writeBit,
   writeRegister,
 } from "./services/modbus.js";
 
@@ -86,13 +87,13 @@ app.prepare().then(() => {
       logger.info(`Client disconnected: ${socket.id}`);
     });
 
-    socket.on("write-modbus-register", async ({ address, value }) => {
+    socket.on("write-modbus-register", async ({ address, bit, value }) => {
       try {
-        await writeModbusRegister(address, value);
+        await writeModbusBit(address, bit, value);
         logger.info(
-          `Client ${socket.id} wrote value ${value} to register ${address}`
+          `Client ${socket.id} wrote value ${value} to register ${address}, bit ${bit}`
         );
-        socket.emit("writeSuccess", { address, value });
+        socket.emit("writeSuccess", { address, bit, value });
       } catch (error) {
         logger.error(
           `Error writing to register for client ${socket.id}:`,
@@ -155,6 +156,10 @@ app.prepare().then(() => {
         details: error.message,
       });
     }
+  }
+
+  async function writeModbusBit(address, bit, value) {
+    await writeBit(address, bit, value);
   }
 
   async function sendModbusDataToClientBits(socket, register, bits) {
