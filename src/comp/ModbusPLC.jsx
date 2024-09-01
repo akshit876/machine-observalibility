@@ -55,6 +55,14 @@ const ModbusUI = () => {
                   value={Number(v)}
                   readOnly
                   className={`${Number(v) === 0 ? "bg-red-500" : Number(v) === 1 ? "bg-green-500" : ""}`}
+                  style={{
+                    backgroundColor:
+                      Number(v) === 0
+                        ? "red"
+                        : Number(v) === 1
+                          ? "green"
+                          : "white",
+                  }}
                 />
               </div>
             ))}
