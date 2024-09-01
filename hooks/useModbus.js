@@ -2,28 +2,44 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSocket } from "@/SocketContext";
 
-export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
+export function useModbus({
+  readRange = {
+    register: 100,
+    bits: [0, 2, 5],
+  },
+  writeRange = {
+    register: 100,
+    bits: [0, 2, 5],
+  },
+}) {
   const [readRegisters, setReadRegisters] = useState(
-    Array(readRange[1] - readRange[0] + 1).fill(0)
+    Array(readRange.bits.length).fill(0)
   );
   const [writeRegisters, setWriteRegisters] = useState(
-    Array(writeRange[1] - writeRange[0] + 1).fill(0)
+    Array(writeRange.bits.length).fill(0)
   );
   const [refresh, setRefresh] = useState(false);
   const socket = useSocket(); // Get the socket instance from context
 
   const fetchReadRegisters = useCallback(() => {
     if (socket) {
-      socket.emit("request-modbus-data", { readRange });
+      socket.emit("request-modbus-data", {
+        register: readRange.register,
+        bits: readRange.bits,
+        interval: 500,
+      });
     }
   }, [refresh]);
 
   useEffect(() => {
     if (!socket) return; // Ensure the socket is available
 
-    const handleModbusData = (data) => {
+    const handleModbusData = ({ register, value, bits }) => {
       // Assuming the data structure matches what's sent from the server
-      setReadRegisters(data.registers || Array(10).fill(0));
+      console.log(`Received data for register ${register}:`);
+      console.log(`Full register value: ${value}`);
+      console.log("Bit values:", bits);
+      setReadRegisters(bits || Array(10).fill(0));
     };
     // Request initial Modbus data
     // socket.emit("request-modbus-data", { readRange });
@@ -56,7 +72,7 @@ export function useModbus({ readRange = [0, 9], writeRange = [0, 9] }) {
     (index) => {
       if (socket) {
         socket.emit("write-modbus-register", {
-          index: writeRange[0] + index,
+          address: writeRange.register + index,
           value: writeRegisters[index],
         });
       }

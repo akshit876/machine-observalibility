@@ -42,14 +42,43 @@ app.prepare().then(() => {
   const io = new Server(server);
 
   io.on("connection", (socket) => {
+    let intervalId = null;
     logger.info(`New client connected: ${socket.id}`);
 
     socket.on("request-csv-data", () => {
       sendCsvDataToClient(socket);
     });
 
-    socket.on("request-modbus-data", async ({ readRange }) => {
-      await sendModbusDataToClient(socket, readRange);
+    socket.on(
+      "request-modbus-data",
+      async ({ register, bits, interval = 1000 }) => {
+        // Clear any existing interval for this socket
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+
+        // Set up periodic polling
+        intervalId = setInterval(async () => {
+          await sendModbusDataToClientBits(socket, register, bits);
+        }, interval);
+
+        // Initial data send
+        await sendModbusDataToClientBits(socket, register, bits);
+      }
+    );
+
+    socket.on("stop-modbus-data", () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    });
+
+    socket.on("disconnect", () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      logger.info(`Client disconnected: ${socket.id}`);
     });
 
     socket.on("write-modbus-register", async ({ address, value }) => {
@@ -118,6 +147,29 @@ app.prepare().then(() => {
       logger.error(`Error reading registers for client ${socket.id}:`, error);
       socket.emit("error", {
         message: "Failed to read registers",
+        details: error.message,
+      });
+    }
+  }
+
+  async function sendModbusDataToClientBits(socket, register, bits) {
+    try {
+      const [registerValue] = await readRegister(register, 1);
+      const bitValues = {};
+
+      for (const bit of bits) {
+        bitValues[bit] = await readBit(register, bit);
+      }
+
+      socket.emit("modbus-data", {
+        register,
+        value: registerValue,
+        bits: bitValues,
+      });
+    } catch (error) {
+      logger.error(`Error reading register for client ${socket.id}:`, error);
+      socket.emit("error", {
+        message: "Failed to read register",
         details: error.message,
       });
     }

@@ -12,6 +12,9 @@ const readEnd = parseInt(process.env.NEXT_PUBLIC_READ_END || "315", 10);
 const writeStart = parseInt(process.env.NEXT_PUBLIC_WRITE_START || "320", 10);
 const writeEnd = parseInt(process.env.NEXT_PUBLIC_WRITE_END || "335", 10);
 
+const readbits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const writebits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
 const ModbusUI = () => {
   const {
     readRegisters,
@@ -20,8 +23,14 @@ const ModbusUI = () => {
     handleWrite,
     refreshReadRegisters,
   } = useModbus({
-    readRange: [readStart, readEnd],
-    writeRange: [writeStart, writeEnd],
+    readRange: {
+      register: readStart,
+      bits: readbits,
+    },
+    writeRange: {
+      register: writeStart,
+      bits: writebits,
+    },
   });
 
   return (
@@ -35,7 +44,7 @@ const ModbusUI = () => {
           {readRegisters.map((value, index) => (
             <div key={`read-${index}`} className="mb-2">
               <Label>
-                Register <strong>{readStart + index}</strong>
+                Register <strong>{readbits[index]}</strong>
               </Label>
               <Input type="text" value={value} readOnly />
             </div>

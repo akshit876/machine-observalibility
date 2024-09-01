@@ -83,6 +83,54 @@ class ModbusConnection {
     }
   }
 
+  async readBit(address, bitPosition) {
+    await this.ensureConnection();
+    try {
+      const [registerValue] = await this.client.readHoldingRegisters(
+        address,
+        1
+      );
+      const bitValue = (registerValue & (1 << bitPosition)) !== 0;
+      logger.info(
+        `Read bit ${bitPosition} from register ${address}: ${bitValue}`
+      );
+      return bitValue;
+    } catch (error) {
+      logger.error(
+        `Error reading bit ${bitPosition} from register ${address}:`,
+        error
+      );
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async writeBit(address, bitPosition, value) {
+    await this.ensureConnection();
+    try {
+      // Read the current register value
+      const [currentValue] = await this.client.readHoldingRegisters(address, 1);
+
+      // Modify the bit
+      const newValue = value
+        ? currentValue | (1 << bitPosition) // Set bit
+        : currentValue & ~(1 << bitPosition); // Clear bit
+
+      // Write the modified value back to the register
+      await this.client.writeRegister(address, newValue);
+      logger.info(
+        `Successfully wrote bit ${bitPosition} with value ${value} to register ${address}`
+      );
+    } catch (error) {
+      logger.error(
+        `Error writing bit ${bitPosition} to register ${address}:`,
+        error
+      );
+      this.handleError(error);
+      throw error;
+    }
+  }
+
   handleError(error) {
     if (error.errno === "ETIMEDOUT" || error.errno === "ECONNRESET") {
       logger.warn(`Connection error: ${error.errno}. Scheduling reconnect.`);
@@ -103,6 +151,11 @@ export const readRegisterAndProvideASCII = async (address, len) => {
   const data = await modbusConnection.readRegister(address, len);
   return modbusConnection.convertToASCII(data);
 };
+
+export const readBit = (address, bitPosition) =>
+  modbusConnection.readBit(address, bitPosition);
+export const writeBit = (address, bitPosition, value) =>
+  modbusConnection.writeBit(address, bitPosition, value);
 
 // Initialize the connection when this module is imported
 // connect();
