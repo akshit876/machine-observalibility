@@ -9,7 +9,12 @@ import { MockSerialPort } from "./services/mockSerialPort.js";
 import { fileURLToPath } from "url";
 import path, { dirname, parse } from "path";
 import { getCurrentDate } from "./services/scanUtils.js";
-import { connect, readRegister, writeRegister } from "./services/modbus.js";
+import {
+  connect,
+  readBit,
+  readRegister,
+  writeRegister,
+} from "./services/modbus.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
