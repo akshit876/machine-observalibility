@@ -23,12 +23,11 @@ async function testModbusService() {
     // console.log("ASCII String at register 350:", asciiString);
 
     // Test reading and writing individual bits
-    const testBitRegister = 300;
-    const testBits = [
-      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1, 4, 15, 1, 6, 17,
-    ]; // Test bits at positions 0, 2, 5, and 15
-    const value = await readBits(testBitRegister, testBits);
-    console.log(value);
+    let testBitRegister = 300;
+    const testBits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]; // Test bits at positions 0, 2, 5, and 15
+    const value = await readBits(testBitRegister, testBits.reverse());
+    const p2 = value.map((p, i) => Number(p.value));
+    console.log(p2);
 
     // for (const bit of testBits) {
     //   const value = await readBit(testBitRegister, bit);
@@ -47,12 +46,13 @@ async function testModbusService() {
     // }
 
     // // Set each test bit to 1
-    // console.log("\nSetting test bits to 1");
-    // for (const bit of testBits) {
-    //   await writeBit(testBitRegister, bit, true);
-    //   const value = await readBit(testBitRegister, bit);
-    //   console.log(`Bit ${bit} set to: ${value}`);
-    // }
+    testBitRegister = 323;
+    console.log("\nSetting test bits to 1");
+    for (const bit of testBits) {
+      await writeBit(testBitRegister, bit, true);
+      const value = await readBit(testBitRegister, bit);
+      console.log(`Bit ${bit} set to: ${value}`);
+    }
 
     // // Read the full register value
     // const [fullValue] = await readRegister(testBitRegister, 1);

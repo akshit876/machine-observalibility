@@ -132,7 +132,8 @@ class ModbusConnection {
     await this.ensureConnection();
     try {
       // Read the current register value
-      const [currentValue] = await this.client.readHoldingRegisters(address, 1);
+      const result = await this.client.readHoldingRegisters(address, 1);
+      const currentValue = result.data[0];
 
       // Modify the bit
       const newValue = value
@@ -149,6 +150,37 @@ class ModbusConnection {
         `Error writing bit ${bitPosition} to register ${address}:`,
         error
       );
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async writeBits(address, bitValues) {
+    await this.ensureConnection();
+    try {
+      // Read the current register value
+      const result = await this.client.readHoldingRegisters(address, 1);
+      let currentValue = result.data[0];
+
+      // Modify the bits
+      for (const { position, value } of bitValues) {
+        if (position < 0 || position > 15) {
+          throw new Error(
+            `Invalid bit position: ${position}. Must be between 0 and 15.`
+          );
+        }
+        currentValue = value
+          ? currentValue | (1 << position) // Set bit
+          : currentValue & ~(1 << position); // Clear bit
+      }
+
+      // Write the modified value back to the register
+      await this.client.writeRegister(address, currentValue);
+      logger.info(
+        `Successfully wrote bits to register ${address}: ${JSON.stringify(bitValues)}`
+      );
+    } catch (error) {
+      logger.error(`Error writing bits to register ${address}:`, error);
       this.handleError(error);
       throw error;
     }
@@ -181,6 +213,8 @@ export const writeBit = (address, bitPosition, value) =>
   modbusConnection.writeBit(address, bitPosition, value);
 export const readBits = (address, bitPositions) =>
   modbusConnection.readBits(address, bitPositions);
+export const writeBits = (address, bitValues) =>
+  modbusConnection.writeBits(address, bitValues);
 
 // Initialize the connection when this module is imported
 // connect();
