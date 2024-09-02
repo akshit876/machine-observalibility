@@ -1,12 +1,12 @@
 export const MODBUS_ADDRESSES = {
-  INPUT_START: parseInt(process.env.NEXT_PUBLIC_READ_START_1 || "300", 10),
-  OUTPUT_START: parseInt(process.env.NEXT_PUBLIC_READ_START_2 || "340", 10),
+  INPUT_START: parseInt(process.env.NEXT_PUBLIC_READ_START_1 || "1400", 10),
+  OUTPUT_START: parseInt(process.env.NEXT_PUBLIC_READ_START_2 || "1404", 10),
   SOFTWARE_PLC_INPUT_START: parseInt(
-    process.env.NEXT_PUBLIC_READ_START_3 || "340",
+    process.env.NEXT_PUBLIC_READ_START_3 || "1410",
     10
   ),
   SOFTWARE_PLC_OUTPUT_START: parseInt(
-    process.env.NEXT_PUBLIC_READ_START_4 || "380",
+    process.env.NEXT_PUBLIC_READ_START_4 || "1414",
     10
   ),
 };
@@ -44,11 +44,11 @@ export const SECTION_LABELS = {
     "Spare",
     "Spare",
     "Spare",
-    "Spare",
     "Tower Light Red",
     "Tower Light Green",
     "Tower Light Yellow",
     "Work Light",
+    "Spare",
     "Spare",
     "Spare",
     "Spare",
@@ -63,8 +63,8 @@ export const SECTION_LABELS = {
     "Spare",
     "Spare",
     "Spare",
-    "Spare",
-    "Spare",
+    "result ok",
+    "result ng",
     "Spare",
     "Spare",
     "Spare",

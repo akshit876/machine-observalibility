@@ -56,7 +56,10 @@ const ModbusSection = ({ section }) => {
         <div className="space-y-2">
           {readRegisters?.bits &&
             Object.entries(readRegisters.bits).map(([k, v], index) => (
-              <div key={`read-${index}`} className="flex items-center space-x-2">
+              <div
+                key={`read-${index}`}
+                className="flex items-center space-x-2"
+              >
                 <Label className="w-1/2 text-sm">{section.labels[index]}</Label>
                 <Input
                   type="text"
@@ -65,8 +68,13 @@ const ModbusSection = ({ section }) => {
                   className="w-1/2 text-center font-bold"
                   style={{
                     backgroundColor:
-                      Number(v) === 0 ? "#FCA5A5" : Number(v) === 1 ? "#86EFAC" : "white",
-                    color: Number(v) === 0 || Number(v) === 1 ? "white" : "black",
+                      Number(v) === 0
+                        ? "#FCA5A5"
+                        : Number(v) === 1
+                          ? "#86EFAC"
+                          : "white",
+                    color:
+                      Number(v) === 0 || Number(v) === 1 ? "white" : "black",
                   }}
                 />
               </div>
