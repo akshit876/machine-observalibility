@@ -7,6 +7,7 @@ import logger from "../logger.js";
 
 import { fileURLToPath } from "url";
 import { parse, stringify } from "csv";
+import { writeBit } from "./modbus.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,6 +48,14 @@ export async function processSecondScan(io, part, firstScanData) {
 
   const manualCode = await readFromFile("code.txt");
   const result = compareScans(manualCode, secondScanData);
+  const grading = "A";
+  if (grading === "A" || grading === "B" || grading === "C") {
+    await writeBit(1414, 8, 1);
+    setTimeout(() => writeBit(1414, 8, 0), 200);
+  } else {
+    await writeBit(1414, 9, 1);
+    setTimeout(() => writeBit(1414, 9, 0), 200);
+  }
   await saveToCSV(io, manualCode, result);
   logger.info(`Scan comparison result saved to Excel: ${result}`);
 

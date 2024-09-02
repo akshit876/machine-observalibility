@@ -20,13 +20,20 @@ import {
   handlePortFlush,
   handlePortOpen,
 } from "./portUtils.js";
+import {
+  readRegister,
+  readRegisterAndProvideASCII,
+  writeBit,
+} from "./modbus.js";
+import { getData } from "./lowDbService.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let buffer = "";
 let firstScanData = null;
 let codeWritten = false;
 let specialCodeCounter = 1;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const codeFormat = () => {
   const now = new Date();
@@ -37,7 +44,6 @@ const codeFormat = () => {
   return `${dd}${mm}${yy}${increment}`;
 };
 
-// Modify initSerialPort to accept SerialPortClass (default to real SerialPort)
 export function initSerialPort(io, SerialPortClass = SerialPort) {
   const port = new SerialPortClass({
     path: process.env.SERIAL_PORT || "COM3",
@@ -48,11 +54,9 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
     autoOpen: false,
   });
 
-  // Start mocking if MockSerialPort is used
   if (SerialPortClass === MockSerialPort) {
     port.startMocking();
   }
-  // const parser = port.pipe(new ReadlineParser({ delimiter: "\r" }));
 
   port.open((err) => {
     if (err) {
@@ -60,11 +64,6 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
       return;
     }
     handlePortOpen();
-    // Start mocking if MockSerialPort is used
-    if (SerialPortClass === MockSerialPort) {
-      // port.write("iuhdiuhaidhuasid\r");
-      // port.startMocking();
-    }
   });
 
   port.on("data", async (data) => {
@@ -78,71 +77,18 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
       console.log("part", part);
       if (part) {
         if (!firstScanData) {
-          firstScanData = processFirstScan(part);
-          console.log("firstScanData", firstScanData);
-
-          if (firstScanData === "NG") {
-            const specialCode = codeFormat();
-            specialCodeCounter++;
-            await clearCodeFile("code.txt");
-            fs.writeFileSync(
-              path.join(__dirname, "../data/code.txt"),
-              specialCode
-            );
-
-            logger.info(`Special code generated and written: ${specialCode}`);
-
-            robot.keyTap("f2");
-            logger.info("F2 key press simulated");
-          } else {
-            logger.info(
-              "Machine won't run further since the component is already marked."
-            );
-            io.emit("machine-stop", {
-              message:
-                "Machine won't run further since the component is already marked.",
-            });
-            firstScanData = null;
-            codeWritten = false;
-            // return;
-          }
+          await handleFirstScan(io, part);
         } else if (codeWritten) {
-          await processSecondScan(io, part, firstScanData);
-          // Reset for the next cycle
+          await handleSecondScan(io, part);
           firstScanData = null;
           codeWritten = false;
         }
       }
-
-      // const delimiter = parts.shift().trim();
-      // if (delimiter === "NG") {
-      //   if (!firstScanData) {
-      //     firstScanData = processFirstScan(delimiter);
-
-      //     const specialCode = codeFormat();
-      //     specialCodeCounter++;
-      //     await clearCodeFile("code.txt");
-      //     fs.writeFileSync(
-      //       path.join(__dirname, "../data/code.txt"),
-      //       specialCode,
-      //     );
-
-      //     logger.info(`Special code generated and written: ${specialCode}`);
-
-      //     robot.keyTap("f2");
-      //     logger.info("F2 key press simulated");
-      //   } else if (codeWritten) {
-      //     await processSecondScan(delimiter, firstScanData);
-      //     firstScanData = null;
-      //     codeWritten = false;
-      //   }
-      // }
     }
 
     buffer = parts.length ? parts[0] : "";
   });
 
-  // Attach event handlers using the utility functions
   port.on("error", handlePortError);
   port.on("close", handlePortClose);
   port.on("disconnect", handlePortDisconnect);
@@ -150,6 +96,60 @@ export function initSerialPort(io, SerialPortClass = SerialPort) {
   port.on("flush", handlePortFlush);
 
   return port;
+}
+
+async function waitForBitToBecomeOne(register, bit) {
+  return new Promise((resolve) => {
+    const interval = setInterval(async () => {
+      const bitValue = await readRegister(register, 1);
+      if ((bitValue & (1 << bit)) !== 0) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100);
+  });
+}
+
+async function handleFirstScan(io, part) {
+  firstScanData = processFirstScan(part);
+  console.log("firstScanData", firstScanData);
+
+  if (firstScanData === "NG") {
+    await waitForBitToBecomeOne(1400, 1);
+    const cameraData = await readRegisterAndProvideASCII(1450, 15);
+    const cameraDataString = String.fromCharCode(...cameraData);
+
+    const DEFAULT_CAMERA_DATA = await getData("defaultCameraData");
+
+    if (cameraDataString !== DEFAULT_CAMERA_DATA) {
+      io.emit("alert", { message: "Camera data incorrect" });
+    } else {
+      const specialCode = codeFormat();
+      specialCodeCounter++;
+      const finalCode = `${specialCode}${cameraDataString}`;
+      await clearCodeFile("code.txt");
+      fs.writeFileSync(path.join(__dirname, "../data/code.txt"), finalCode);
+
+      logger.info(`Final code generated and written: ${finalCode}`);
+
+      robot.keyTap("f2");
+      logger.info("F2 key press simulated");
+    }
+  } else {
+    logger.info(
+      "Machine won't run further since the component is already marked."
+    );
+    io.emit("machine-stop", {
+      message:
+        "Machine won't run further since the component is already marked.",
+    });
+    firstScanData = null;
+    codeWritten = false;
+  }
+}
+
+async function handleSecondScan(io, part) {
+  processSecondScan(part, firstScanData);
 }
 
 export function watchCodeFile() {

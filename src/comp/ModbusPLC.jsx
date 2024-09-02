@@ -13,7 +13,7 @@ import {
   MODBUS_BITS,
   SECTION_LABELS,
   MANUAL_RUN_OPERATIONS,
-} from "@/constants";
+} from "@/constants/modbus";
 
 const sections = [
   {

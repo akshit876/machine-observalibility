@@ -69,6 +69,35 @@ class ModbusConnection {
     }
   }
 
+  // Function to convert an array of register values to ASCII characters with the correct byte order
+  convertToASCII(registerValues) {
+    let asciiString = "";
+    registerValues.forEach((value) => {
+      // Extract the two bytes from the 16-bit register
+      const lowByte = value & 0xff; // Low byte (first)
+      const highByte = (value >> 8) & 0xff; // High byte (second)
+
+      // Convert bytes to characters and append to the final ASCII string
+      asciiString +=
+        String.fromCharCode(lowByte) + String.fromCharCode(highByte);
+    });
+    return asciiString;
+  }
+
+  async readRegisterAndProvideASCII(address, len) {
+    try {
+      const data = await this.readRegister(address, len);
+      const asciiString = this.convertToASCII(data);
+      console.log(
+        `Read registers starting at address ${address} (length: ${len}): ${data} (ASCII: ${asciiString})`
+      );
+      return asciiString;
+    } catch (error) {
+      logger.error(`Error reading registers at address ${address}:`, error);
+      throw error;
+    }
+  }
+
   async writeRegister(address, value) {
     await this.ensureConnection();
     try {

@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 import { Low } from "lowdb";
 import { JSONFilePreset } from "lowdb/node";
 import path, { dirname } from "path";
