@@ -1,15 +1,11 @@
 import ModbusRTU from "modbus-serial";
 import logger from "../logger.js";
-// import logger from '../logger.js';  // Adjust the path as necessary
+import { emitErrorEvent } from "./utils.js";
 
 // Default values
 const DEFAULT_MODBUS_IP = "192.168.3.145";
 const DEFAULT_MODBUS_PORT = 502;
 
-// const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
-// const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
-
-// Try to get values from env, use defaults if not available
 const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP || DEFAULT_MODBUS_IP;
 const MODBUS_PORT =
   parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10) || DEFAULT_MODBUS_PORT;
@@ -19,6 +15,7 @@ class ModbusConnection {
     this.client = new ModbusRTU();
     this.isConnected = false;
     this.reconnectInterval = 5000; // 5 seconds
+    this.socket = null;
   }
 
   async connect() {
@@ -29,11 +26,12 @@ class ModbusConnection {
       this.client.setID(1); // Set the Modbus slave ID (adjust as needed)
       this.isConnected = true;
       logger.info(`Connected to Modbus device at ${MODBUS_IP}:${MODBUS_PORT}`);
-
-      // Set up connection monitoring
-      // this.client.socket.on("close", this.handleDisconnect.bind(this));
     } catch (error) {
-      logger.error("Error connecting to Modbus device:", error);
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_CONNECT_ERROR",
+        `Error connecting to Modbus device: ${error.message}`
+      );
       this.scheduleReconnect();
     }
   }
@@ -63,21 +61,21 @@ class ModbusConnection {
       );
       return data;
     } catch (error) {
-      logger.error(`Error reading registers at address ${address}:`, error);
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_READ_ERROR",
+        `Error reading registers at address ${address}: ${error.message}`
+      );
       this.handleError(error);
       throw error;
     }
   }
 
-  // Function to convert an array of register values to ASCII characters with the correct byte order
   convertToASCII(registerValues) {
     let asciiString = "";
     registerValues.forEach((value) => {
-      // Extract the two bytes from the 16-bit register
-      const lowByte = value & 0xff; // Low byte (first)
-      const highByte = (value >> 8) & 0xff; // High byte (second)
-
-      // Convert bytes to characters and append to the final ASCII string
+      const lowByte = value & 0xff;
+      const highByte = (value >> 8) & 0xff;
       asciiString +=
         String.fromCharCode(lowByte) + String.fromCharCode(highByte);
     });
@@ -93,7 +91,11 @@ class ModbusConnection {
       );
       return asciiString;
     } catch (error) {
-      logger.error(`Error reading registers at address ${address}:`, error);
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_READ_ASCII_ERROR",
+        `Error reading registers at address ${address}: ${error.message}`
+      );
       throw error;
     }
   }
@@ -106,7 +108,11 @@ class ModbusConnection {
         `Successfully wrote value ${value} to register at address ${address}`
       );
     } catch (error) {
-      logger.error(`Error writing to register at address ${address}:`, error);
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_WRITE_ERROR",
+        `Error writing to register at address ${address}: ${error.message}`
+      );
       this.handleError(error);
       throw error;
     }
@@ -116,16 +122,17 @@ class ModbusConnection {
     await this.ensureConnection();
     try {
       const result = await this.client.readHoldingRegisters(address, 1);
-      const registerValue = result.data[0]; // Access the first element of the data array
+      const registerValue = result.data[0];
       const bitValue = (registerValue & (1 << bitPosition)) !== 0;
       logger.info(
         `Read bit ${bitPosition} from register ${address}: ${bitValue}`
       );
       return bitValue;
     } catch (error) {
-      logger.error(
-        `Error reading bit ${bitPosition} from register ${address}:`,
-        error
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_READ_BIT_ERROR",
+        `Error reading bit ${bitPosition} from register ${address}: ${error.message}`
       );
       this.handleError(error);
       throw error;
@@ -148,9 +155,10 @@ class ModbusConnection {
       );
       return bitValues;
     } catch (error) {
-      logger.error(
-        `Error reading bits ${bitPositions.join(", ")} from register ${address}:`,
-        error
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_READ_BITS_ERROR",
+        `Error reading bits ${bitPositions.join(", ")} from register ${address}: ${error.message}`
       );
       this.handleError(error);
       throw error;
@@ -160,24 +168,20 @@ class ModbusConnection {
   async writeBit(address, bitPosition, value) {
     await this.ensureConnection();
     try {
-      // Read the current register value
       const result = await this.client.readHoldingRegisters(address, 1);
       const currentValue = result.data[0];
-
-      // Modify the bit
       const newValue = value
-        ? currentValue | (1 << bitPosition) // Set bit
-        : currentValue & ~(1 << bitPosition); // Clear bit
-
-      // Write the modified value back to the register
+        ? currentValue | (1 << bitPosition)
+        : currentValue & ~(1 << bitPosition);
       await this.client.writeRegister(address, newValue);
       logger.info(
         `Successfully wrote bit ${bitPosition} with value ${value} to register ${address}`
       );
     } catch (error) {
-      logger.error(
-        `Error writing bit ${bitPosition} to register ${address}:`,
-        error
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_WRITE_BIT_ERROR",
+        `Error writing bit ${bitPosition} to register ${address}: ${error.message}`
       );
       this.handleError(error);
       throw error;
@@ -187,11 +191,9 @@ class ModbusConnection {
   async writeBits(address, bitValues) {
     await this.ensureConnection();
     try {
-      // Read the current register value
       const result = await this.client.readHoldingRegisters(address, 1);
       let currentValue = result.data[0];
 
-      // Modify the bits
       for (const { position, value } of bitValues) {
         if (position < 0 || position > 15) {
           throw new Error(
@@ -199,17 +201,65 @@ class ModbusConnection {
           );
         }
         currentValue = value
-          ? currentValue | (1 << position) // Set bit
-          : currentValue & ~(1 << position); // Clear bit
+          ? currentValue | (1 << position)
+          : currentValue & ~(1 << position);
       }
 
-      // Write the modified value back to the register
       await this.client.writeRegister(address, currentValue);
       logger.info(
         `Successfully wrote bits to register ${address}: ${JSON.stringify(bitValues)}`
       );
     } catch (error) {
-      logger.error(`Error writing bits to register ${address}:`, error);
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_WRITE_BITS_ERROR",
+        `Error writing bits to register ${address}: ${error.message}`
+      );
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  async readDataAndConfirm(
+    address,
+    len,
+    inputFeedbackBit,
+    outputFeedbackBit,
+    delay
+  ) {
+    await this.ensureConnection();
+
+    try {
+      const inputFeedback = await this.readBit(address, inputFeedbackBit);
+      if (!inputFeedback) {
+        logger.info(
+          `Input feedback bit ${inputFeedbackBit} is not set. Aborting read.`
+        );
+        return null;
+      }
+
+      const asciiString = await this.readRegisterAndProvideASCII(address, len);
+      logger.info(
+        `Read data from address ${address} and converted to ASCII: ${asciiString}`
+      );
+
+      await this.writeBit(address, outputFeedbackBit, true);
+      logger.info(
+        `Set output feedback bit ${outputFeedbackBit} to confirm read success.`
+      );
+
+      setTimeout(async () => {
+        await this.writeBit(address, outputFeedbackBit, false);
+        logger.info(`Reset output feedback bit ${outputFeedbackBit}.`);
+      }, delay);
+
+      return asciiString;
+    } catch (error) {
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_READ_CONFIRM_ERROR",
+        `Error in readDataAndConfirm: ${error.message}`
+      );
       this.handleError(error);
       throw error;
     }
@@ -226,16 +276,17 @@ class ModbusConnection {
 
 const modbusConnection = new ModbusConnection();
 
+export const setSocket = (socket) => {
+  modbusConnection.socket = socket;
+};
+
 export const connect = () => modbusConnection.connect();
 export const readRegister = (address, len) =>
   modbusConnection.readRegister(address, len);
 export const writeRegister = (address, value) =>
   modbusConnection.writeRegister(address, value);
-export const readRegisterAndProvideASCII = async (address, len) => {
-  const data = await modbusConnection.readRegister(address, len);
-  return modbusConnection.convertToASCII(data);
-};
-
+export const readRegisterAndProvideASCII = (address, len) =>
+  modbusConnection.readRegisterAndProvideASCII(address, len);
 export const readBit = (address, bitPosition) =>
   modbusConnection.readBit(address, bitPosition);
 export const writeBit = (address, bitPosition, value) =>
@@ -244,6 +295,17 @@ export const readBits = (address, bitPositions) =>
   modbusConnection.readBits(address, bitPositions);
 export const writeBits = (address, bitValues) =>
   modbusConnection.writeBits(address, bitValues);
-
-// Initialize the connection when this module is imported
-// connect();
+export const readDataAndConfirm = (
+  address,
+  len,
+  inputFeedbackBit,
+  outputFeedbackBit,
+  delay
+) =>
+  modbusConnection.readDataAndConfirm(
+    address,
+    len,
+    inputFeedbackBit,
+    outputFeedbackBit,
+    delay
+  );

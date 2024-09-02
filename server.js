@@ -4,7 +4,12 @@ import fs from "fs";
 import morgan from "morgan";
 import { Server } from "socket.io";
 import logger from "./logger.js";
-import { initSerialPort, watchCodeFile } from "./services/serialPortService.js";
+import {
+  handleFirstScan,
+  handleSecondScan,
+  initSerialPort,
+  watchCodeFile,
+} from "./services/serialPortService.js";
 import { MockSerialPort } from "./services/mockSerialPort.js";
 import { fileURLToPath } from "url";
 import path, { dirname, parse } from "path";
@@ -133,13 +138,17 @@ app.prepare().then(() => {
     }
     logger.info(`> Server ready on http://localhost:${PORT}`);
 
-    initSerialPort(io);
-    watchCodeFile();
+    // initSerialPort(io);
+    // watchCodeFile();
 
     // Initialize Modbus connection once
     try {
       await connect();
       logger.info("Modbus connection initialized");
+      // runContinuousScan().catch((error) => {
+      //   logger.error("Continuous scan process crashed:", error);
+      // });
+      await runContinuousScan();
     } catch (error) {
       logger.error("Failed to initialize Modbus connection:", error);
     }
@@ -200,6 +209,28 @@ app.prepare().then(() => {
         message: "Failed to read register",
         details: error.message,
       });
+    }
+  }
+
+  async function runContinuousScan() {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        // First scan
+        logger.info("Starting first scan...");
+        await handleFirstScan(io);
+
+        // Second scan
+        logger.info("Starting second scan...");
+        await handleSecondScan(io);
+
+        logger.info("Scan cycle completed");
+      } catch (error) {
+        logger.error("Error during scan cycle:", error);
+      }
+
+      // Optional: Add a small delay between cycles if needed
+      // await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 

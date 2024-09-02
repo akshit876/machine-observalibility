@@ -23,38 +23,41 @@ export function useModbus({ readRange, writeRange, readOnly = false }) {
 
     // const handleModbusData = ({ register, value, bits }) => {
     //   // Assuming the data structure matches what's sent from the server
-      
+
     //   console.log(`Received data for register ${register}:`);
     //   console.log(`Full register value: ${value}`);
     //   console.log("Bit values:", bits);
     //   setReadRegisters({ register, value, bits } || {});
     // };
 
+    const eventName = `modbus-data-${readRange.register}`;
+
     const handleModbusData = ({ register, value, bits }) => {
       if (register === readRange.register) {
-        console.log({register,value})
+        console.log({ register, value });
         setReadRegisters({ register, value, bits } || {});
       }
     };
 
-    // Listen for Modbus data updates
-    socket.on("modbus-data", handleModbusData);
+    // Listen for Modbus data updates with a unique event name
+    socket.on(eventName, handleModbusData);
     // fetchReadRegisters(); // Initial fetch
     socket.emit("request-modbus-data", {
       register: readRange.register,
       bits: readRange.bits,
       interval: 500,
+      eventName,
     });
-    console.log('here', {
+    console.log("here", {
       register: readRange.register,
       bits: readRange.bits,
       interval: 500,
-    })
+    });
 
     return () => {
       socket.off("modbus-data", handleModbusData);
     };
-  }, []);
+  }, [socket, readOnly, readRange]);
 
   const refreshReadRegisters = () => {
     setRefresh(true);

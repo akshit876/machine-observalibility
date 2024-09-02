@@ -53,6 +53,7 @@ export const SECTION_LABELS = {
     "Spare",
     "Spare",
     "Spare",
+    "Spare",
   ],
   SOFTWARE_PLC_INPUT: [
     "scanner data receive ok",

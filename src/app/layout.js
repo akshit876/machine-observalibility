@@ -5,6 +5,8 @@ import "./globals.css";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
 import { SocketProvider } from "@/SocketContext";
+import { ToastProvider } from "@/comp/ToastProvider";
+import { ErrorToastHandler } from "@/comp/ErrorToasthandler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,16 +20,19 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <SocketProvider>
-          <div className="flex">
-            {/* Sidebar with a fixed width */}
-            <Sidebar />
+          <ToastProvider>
+            <ErrorToastHandler />
+            <div className="flex">
+              {/* Sidebar with a fixed width */}
+              <Sidebar />
 
-            {/* Main content area */}
-            <div className="flex-1 flex flex-col ml-64 bg-[#F3F4F6]">
-              <TopBar />
-              <main className="p-6 min-h-screen">{children}</main>
+              {/* Main content area */}
+              <div className="flex-1 flex flex-col ml-64 bg-[#F3F4F6]">
+                <TopBar />
+                <main className="p-6 min-h-screen">{children}</main>
+              </div>
             </div>
-          </div>
+          </ToastProvider>
         </SocketProvider>
       </body>
     </html>

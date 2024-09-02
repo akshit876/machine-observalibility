@@ -1,5 +1,7 @@
 import { writeBit } from "./modbus.js";
 import logger from "../logger.js";
+import { emitErrorEvent } from "./utils.js";
+// import { emitErrorEvent } from "../utils/errorHandler.js"; // Import the error utility
 
 const resetTime = 200;
 
@@ -14,9 +16,11 @@ const MANUAL_RUN_ADDRESSES = {
   servoMarkingPosition: { address: 1414, bit: 7 },
 };
 
-export async function manualRun(operation) {
+export async function manualRun(operation, socket) {
   if (!MANUAL_RUN_ADDRESSES[operation]) {
-    throw new Error(`Invalid operation: ${operation}`);
+    const errorMessage = `Invalid operation: ${operation}`;
+    emitErrorEvent(socket, "INVALID_MANUAL_RUN_OPERATION", errorMessage);
+    throw new Error(errorMessage);
   }
 
   const { address, bit } = MANUAL_RUN_ADDRESSES[operation];
@@ -25,10 +29,16 @@ export async function manualRun(operation) {
     await writeBit(address, bit, 1);
     logger.info(`Manual run operation executed: ${operation}`);
 
-    // Reset the bit after 1 second
+    // Reset the bit after resetTime
     setTimeout(async () => {
-      await writeBit(address, bit, 0);
-      logger.info(`Manual run operation reset: ${operation}`);
+      try {
+        await writeBit(address, bit, 0);
+        logger.info(`Manual run operation reset: ${operation}`);
+      } catch (resetError) {
+        const errorMessage = `Error resetting manual run operation ${operation}: ${resetError.message}`;
+        emitErrorEvent(socket, "MANUAL_RUN_RESET_ERROR", errorMessage);
+        logger.error(errorMessage);
+      }
     }, resetTime);
 
     return {
@@ -36,7 +46,9 @@ export async function manualRun(operation) {
       message: `Operation ${operation} executed successfully`,
     };
   } catch (error) {
-    logger.error(`Error executing manual run operation ${operation}:`, error);
+    const errorMessage = `Error executing manual run operation ${operation}: ${error.message}`;
+    emitErrorEvent(socket, "MANUAL_RUN_EXECUTION_ERROR", errorMessage);
+    logger.error(errorMessage);
     throw error;
   }
 }

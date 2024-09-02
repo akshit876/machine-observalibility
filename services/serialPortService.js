@@ -26,11 +26,13 @@ import {
   writeBit,
 } from "./modbus.js";
 import { getData } from "./lowDbService.js";
+import { emitErrorEvent } from "./utils.js";
+// Import the error utility
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-let buffer = "";
+const buffer = "";
 let firstScanData = null;
 let codeWritten = false;
 let specialCodeCounter = 1;
@@ -44,60 +46,6 @@ const codeFormat = () => {
   return `${dd}${mm}${yy}${increment}`;
 };
 
-export function initSerialPort(io, SerialPortClass = SerialPort) {
-  const port = new SerialPortClass({
-    path: process.env.SERIAL_PORT || "COM3",
-    baudRate: parseInt(process.env.BAUD_RATE, 10) || 9600,
-    dataBits: 8,
-    stopBits: 1,
-    parity: "none",
-    autoOpen: false,
-  });
-
-  if (SerialPortClass === MockSerialPort) {
-    port.startMocking();
-  }
-
-  port.open((err) => {
-    if (err) {
-      handlePortError(err);
-      return;
-    }
-    handlePortOpen();
-  });
-
-  port.on("data", async (data) => {
-    const parts = updateBuffer(data);
-    logger.info(`Received data: ${parts}`);
-    console.log({ parts });
-    while (parts.length > 1) {
-      const part = parts.shift().trim();
-      logger.info(`Received data part: ${part}`);
-
-      console.log("part", part);
-      if (part) {
-        if (!firstScanData) {
-          await handleFirstScan(io, part);
-        } else if (codeWritten) {
-          await handleSecondScan(io, part);
-          firstScanData = null;
-          codeWritten = false;
-        }
-      }
-    }
-
-    buffer = parts.length ? parts[0] : "";
-  });
-
-  port.on("error", handlePortError);
-  port.on("close", handlePortClose);
-  port.on("disconnect", handlePortDisconnect);
-  port.on("drain", handlePortDrain);
-  port.on("flush", handlePortFlush);
-
-  return port;
-}
-
 async function waitForBitToBecomeOne(register, bit) {
   return new Promise((resolve) => {
     const interval = setInterval(async () => {
@@ -110,30 +58,40 @@ async function waitForBitToBecomeOne(register, bit) {
   });
 }
 
-async function handleFirstScan(io, part) {
+export async function handleFirstScan(io, part) {
   firstScanData = processFirstScan(part);
   console.log("firstScanData", firstScanData);
 
   if (firstScanData === "NG") {
-    await waitForBitToBecomeOne(1400, 1);
-    const cameraData = await readRegisterAndProvideASCII(1450, 15);
-    const cameraDataString = String.fromCharCode(...cameraData);
+    try {
+      await waitForBitToBecomeOne(1400, 1);
+      const cameraData = await readRegisterAndProvideASCII(1450, 15);
+      const cameraDataString = String.fromCharCode(...cameraData);
 
-    const DEFAULT_CAMERA_DATA = await getData("defaultCameraData");
+      const DEFAULT_CAMERA_DATA = await getData("defaultCameraData");
 
-    if (cameraDataString !== DEFAULT_CAMERA_DATA) {
-      io.emit("alert", { message: "Camera data incorrect" });
-    } else {
-      const specialCode = codeFormat();
-      specialCodeCounter++;
-      const finalCode = `${specialCode}${cameraDataString}`;
-      await clearCodeFile("code.txt");
-      fs.writeFileSync(path.join(__dirname, "../data/code.txt"), finalCode);
+      if (cameraDataString !== DEFAULT_CAMERA_DATA) {
+        io.emit("alert", { message: "Camera data incorrect" });
+        emitErrorEvent(io, "CAMERA_DATA_MISMATCH", "Camera data incorrect");
+      } else {
+        const specialCode = codeFormat();
+        specialCodeCounter++;
+        const finalCode = `${specialCode}${cameraDataString}`;
+        await clearCodeFile("code.txt");
+        fs.writeFileSync(path.join(__dirname, "../data/code.txt"), finalCode);
 
-      logger.info(`Final code generated and written: ${finalCode}`);
+        logger.info(`Final code generated and written: ${finalCode}`);
 
-      robot.keyTap("f2");
-      logger.info("F2 key press simulated");
+        robot.keyTap("f2");
+        logger.info("F2 key press simulated");
+      }
+    } catch (error) {
+      emitErrorEvent(
+        io,
+        "FIRST_SCAN_ERROR",
+        `Error during first scan: ${error.message}`
+      );
+      logger.error("Error during first scan:", error);
     }
   } else {
     logger.info(
@@ -143,13 +101,23 @@ async function handleFirstScan(io, part) {
       message:
         "Machine won't run further since the component is already marked.",
     });
+    emitErrorEvent(io, "MACHINE_STOP", "Component already marked");
     firstScanData = null;
     codeWritten = false;
   }
 }
 
-async function handleSecondScan(io, part) {
-  processSecondScan(part, firstScanData);
+export async function handleSecondScan(io, part) {
+  try {
+    processSecondScan(part, firstScanData);
+  } catch (error) {
+    emitErrorEvent(
+      io,
+      "SECOND_SCAN_ERROR",
+      `Error during second scan: ${error.message}`
+    );
+    logger.error("Error during second scan:", error);
+  }
 }
 
 export function watchCodeFile() {
