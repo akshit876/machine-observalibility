@@ -1,5 +1,6 @@
 {
   "data": {
+    "defaultCameraData": "YOUR_DEFAULT_CAMERA_DATA",
     "abc": 190
   }
 }
