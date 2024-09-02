@@ -1,4 +1,3 @@
-/* eslint-disable no-nested-ternary */
 "use client";
 
 import React from "react";
@@ -13,7 +12,7 @@ import {
   MODBUS_BITS,
   SECTION_LABELS,
   MANUAL_RUN_OPERATIONS,
-} from "@/constants";
+} from "@/constants/modbus";
 
 const sections = [
   {
@@ -42,13 +41,43 @@ const sections = [
   },
 ];
 
-const useModbusSection = (readStart, readBits) => {
+const ModbusSection = ({ section }) => {
   const { readRegisters, refreshReadRegisters } = useModbus({
-    readRange: { register: readStart, bits: readBits },
+    readRange: { register: section.readStart, bits: section.readBits },
     readOnly: true,
   });
 
-  return { readRegisters, refreshReadRegisters };
+  return (
+    <Card className="shadow-lg">
+      <CardHeader className="bg-gray-100">
+        <CardTitle className="text-lg font-semibold">{section.title}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4">
+        <div className="space-y-2">
+          {readRegisters?.bits &&
+            Object.entries(readRegisters.bits).map(([k, v], index) => (
+              <div key={`read-${index}`} className="flex items-center space-x-2">
+                <Label className="w-1/2 text-sm">{section.labels[index]}</Label>
+                <Input
+                  type="text"
+                  value={Number(v)}
+                  readOnly
+                  className="w-1/2 text-center font-bold"
+                  style={{
+                    backgroundColor:
+                      Number(v) === 0 ? "#FCA5A5" : Number(v) === 1 ? "#86EFAC" : "white",
+                    color: Number(v) === 0 || Number(v) === 1 ? "white" : "black",
+                  }}
+                />
+              </div>
+            ))}
+        </div>
+        <Button onClick={refreshReadRegisters} className="mt-4 w-full">
+          Refresh
+        </Button>
+      </CardContent>
+    </Card>
+  );
 };
 
 const ModbusUI = () => {
@@ -66,60 +95,9 @@ const ModbusUI = () => {
         Modbus PLC Control Panel
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {sections.map((section, sectionIndex) => {
-          const { readRegisters, refreshReadRegisters } = useModbusSection(
-            section.readStart,
-            section.readBits
-          );
-
-          return (
-            <Card key={sectionIndex} className="shadow-lg">
-              <CardHeader className="bg-gray-100">
-                <CardTitle className="text-lg font-semibold">
-                  {section.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-2">
-                  {readRegisters?.bits &&
-                    Object.entries(readRegisters?.bits)?.map(
-                      ([k, v], index) => (
-                        <div
-                          key={`read-${sectionIndex}-${index}`}
-                          className="flex items-center space-x-2"
-                        >
-                          <Label className="w-1/2 text-sm">
-                            {section.labels[index]}
-                          </Label>
-                          <Input
-                            type="text"
-                            value={Number(v)}
-                            readOnly
-                            className="w-1/2 text-center font-bold"
-                            style={{
-                              backgroundColor:
-                                Number(v) === 0
-                                  ? "#FCA5A5"
-                                  : Number(v) === 1
-                                    ? "#86EFAC"
-                                    : "white",
-                              color:
-                                Number(v) === 0 || Number(v) === 1
-                                  ? "white"
-                                  : "black",
-                            }}
-                          />
-                        </div>
-                      )
-                    )}
-                </div>
-                <Button onClick={refreshReadRegisters} className="mt-4 w-full">
-                  Refresh
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {sections.map((section, index) => (
+          <ModbusSection key={`${section.title}`} section={section} />
+        ))}
       </div>
       <div className="mt-8">
         <h2 className="text-2xl font-bold text-center mb-4">

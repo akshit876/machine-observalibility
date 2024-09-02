@@ -21,22 +21,40 @@ export function useModbus({ readRange, writeRange, readOnly = false }) {
   useEffect(() => {
     if (!socket || !readOnly) return; // Ensure the socket is available and readOnly is true
 
+    // const handleModbusData = ({ register, value, bits }) => {
+    //   // Assuming the data structure matches what's sent from the server
+      
+    //   console.log(`Received data for register ${register}:`);
+    //   console.log(`Full register value: ${value}`);
+    //   console.log("Bit values:", bits);
+    //   setReadRegisters({ register, value, bits } || {});
+    // };
+
     const handleModbusData = ({ register, value, bits }) => {
-      // Assuming the data structure matches what's sent from the server
-      console.log(`Received data for register ${register}:`);
-      console.log(`Full register value: ${value}`);
-      console.log("Bit values:", bits);
-      setReadRegisters({ register, value, bits } || {});
+      if (register === readRange.register) {
+        console.log({register,value})
+        setReadRegisters({ register, value, bits } || {});
+      }
     };
 
     // Listen for Modbus data updates
     socket.on("modbus-data", handleModbusData);
-    fetchReadRegisters(); // Initial fetch
+    // fetchReadRegisters(); // Initial fetch
+    socket.emit("request-modbus-data", {
+      register: readRange.register,
+      bits: readRange.bits,
+      interval: 500,
+    });
+    console.log('here', {
+      register: readRange.register,
+      bits: readRange.bits,
+      interval: 500,
+    })
 
     return () => {
       socket.off("modbus-data", handleModbusData);
     };
-  }, [fetchReadRegisters, readOnly]);
+  }, []);
 
   const refreshReadRegisters = () => {
     setRefresh(true);

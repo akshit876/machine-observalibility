@@ -65,9 +65,9 @@ app.prepare().then(() => {
         }
 
         // Set up periodic polling
-        intervalId = setInterval(async () => {
-          await sendModbusDataToClientBits(socket, register, bits);
-        }, interval);
+        // intervalId = setInterval(async () => {
+        //   await sendModbusDataToClientBits(socket, register, bits);
+        // }, interval);
 
         // Initial data send
         await sendModbusDataToClientBits(socket, register, bits);
