@@ -118,6 +118,62 @@ function sanitizeData(data) {
   return data.replace(/"/g, '""').replace(/\r?\n|\r/g, " ");
 }
 
+export async function saveToCSVNew(
+  io,
+  sno,
+  scannerResult,
+  ocrResult,
+  grading,
+  finalResult
+) {
+  const fileName = `${getCurrentDate()}.csv`;
+  const filePath = path.join(__dirname, "../data", fileName);
+
+  const timestamp = `${new Date().toLocaleString("en-US", {
+    hour12: true,
+  })}`; // Format timestamp in 12-hour format
+  const finalResultText = finalResult ? "OK" : "NG"; // Convert final result to text
+
+  const record = [
+    sno,
+    timestamp,
+    scannerResult,
+    ocrResult,
+    grading,
+    finalResultText,
+  ];
+
+  const fileExists = fs.existsSync(filePath);
+
+  const csvStream = fs.createWriteStream(filePath, {
+    flags: fileExists ? "a" : "w", // Append if file exists, else create a new file
+  });
+
+  const stringifier = stringify({
+    header: !fileExists,
+    columns: fileExists
+      ? undefined
+      : [
+          "SNo",
+          "Time",
+          "Scanner Result",
+          "OCR Result",
+          "Grading",
+          "Final Result",
+        ],
+    quoted: true, // Ensure fields are quoted to handle newlines and special characters
+  });
+
+  stringifier.pipe(csvStream);
+  stringifier.write(record);
+  stringifier.end();
+
+  logger.info(`Data saved to CSV file: ${fileName}`);
+
+  // Emit CSV data to the frontend
+  readCsvAndEmit(io, filePath);
+}
+
 export async function saveToCSV(io, manualCode, result) {
   const fileName = `${getCurrentDate()}.csv`;
   const filePath = path.join(__dirname, "../data", fileName);

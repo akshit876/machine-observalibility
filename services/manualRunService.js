@@ -52,3 +52,23 @@ export async function manualRun(operation, socket) {
     throw error;
   }
 }
+
+async function runTest() {
+  try {
+    // await writeBit(1414, 14, 0);
+    // await writeBit(1414, 15, 0);
+    // await writeBit(1414, 13, 0);
+    // await writeBit(1414, 12, 0);
+    // await writeBit(1415, 2, 0); //rest
+    await writeBit(1415, 9, 1);
+    await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    await writeBit(1415, 2, 0); //rest
+    await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    // logger.info(`Manual run operation reset: ${operation}`);
+  } catch (resetError) {
+    // const errorMessage = `Error resetting manual run operation ${operation}: ${resetError.message}`;
+    // emitErrorEvent(socket, "MANUAL_RUN_RESET_ERROR", errorMessage);
+    // logger.error(errorMessage);
+  }
+}
+runTest();

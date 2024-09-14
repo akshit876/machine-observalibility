@@ -12,14 +12,19 @@ export function useErrorToast() {
     if (!socket) return;
 
     const handleError = (error) => {
+      console.log("eror", error);
       toast.error(error.message || "An error occurred", {
-        position: "top-right",
+        position: "top-center",
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
+        style: {
+          fontSize: "1.5rem",
+          fontWeight: 700,
+        },
       });
     };
 

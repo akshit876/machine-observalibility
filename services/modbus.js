@@ -32,14 +32,14 @@ class ModbusConnection {
         "MODBUS_CONNECT_ERROR",
         `Error connecting to Modbus device: ${error.message}`
       );
-      this.scheduleReconnect();
+      // this.scheduleReconnect();
     }
   }
 
   handleDisconnect() {
     logger.warn("Modbus connection closed. Attempting to reconnect...");
     this.isConnected = false;
-    this.scheduleReconnect();
+    // this.scheduleReconnect();
   }
 
   scheduleReconnect() {
@@ -82,10 +82,41 @@ class ModbusConnection {
     return asciiString;
   }
 
+  async writeBitWithReset(address, bitPosition, value, delay = 200) {
+    await this.ensureConnection();
+    try {
+      // Write the initial value to the bit
+      await this.writeBit(address, bitPosition, value);
+      logger.info(
+        `Successfully wrote bit ${bitPosition} with value ${value} to register ${address}`
+      );
+
+      // Wait for the specified delay (default is 200ms)
+      setTimeout(async () => {
+        // Reset the bit to 0 after the delay
+        await this.writeBit(address, bitPosition, false);
+        logger.info(
+          `Successfully reset bit ${bitPosition} to 0 after ${delay}ms in register ${address}`
+        );
+      }, delay);
+    } catch (error) {
+      emitErrorEvent(
+        this.socket,
+        "MODBUS_WRITE_BIT_RESET_ERROR",
+        `Error writing or resetting bit ${bitPosition} in register ${address}: ${error.message}`
+      );
+      this.handleError(error);
+      throw error;
+    }
+  }
+
   async readRegisterAndProvideASCII(address, len) {
     try {
       const data = await this.readRegister(address, len);
-      const asciiString = this.convertToASCII(data);
+      let asciiString = this.convertToASCII(data);
+      // Remove trailing null characters (\x00) from the ASCII string
+      asciiString = asciiString.replace(/\x00+$/, "");
+      console.log({ asciiString });
       console.log(
         `Read registers starting at address ${address} (length: ${len}): ${data} (ASCII: ${asciiString})`
       );
@@ -295,6 +326,8 @@ export const readBits = (address, bitPositions) =>
   modbusConnection.readBits(address, bitPositions);
 export const writeBits = (address, bitValues) =>
   modbusConnection.writeBits(address, bitValues);
+export const writeBitsWithRest = (address, bitPosition, value, delay) =>
+  modbusConnection.writeBitWithReset(address, bitPosition, value, delay);
 export const readDataAndConfirm = (
   address,
   len,

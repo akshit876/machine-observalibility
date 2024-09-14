@@ -7,7 +7,7 @@ import logger from "./logger.js";
 import {
   handleFirstScan,
   handleSecondScan,
-  initSerialPort,
+  // initSerialPort,
   watchCodeFile,
 } from "./services/serialPortService.js";
 import { MockSerialPort } from "./services/mockSerialPort.js";
@@ -34,6 +34,16 @@ const MODBUS_IP = process.env.NEXT_PUBLIC_MODBUS_IP;
 const MODBUS_PORT = parseInt(process.env.NEXT_PUBLIC_MODBUS_PORT, 10);
 
 console.log({ MODBUS_IP, MODBUS_PORT });
+
+function emitErrorEvent(socket, errorType, errorMessage) {
+  if (socket) {
+    socket.emit("error", {
+      type: errorType,
+      message: errorMessage,
+    });
+  }
+  logger.error(`${errorType}: ${errorMessage}`);
+}
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
@@ -133,6 +143,7 @@ app.prepare().then(() => {
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, async (err) => {
     if (err) {
+      emitErrorEvent(io, "server-start-failure", JSON.stringify(err));
       logger.error("Server failed to start: %s", err.message);
       throw err;
     }
@@ -148,8 +159,14 @@ app.prepare().then(() => {
       // runContinuousScan().catch((error) => {
       //   logger.error("Continuous scan process crashed:", error);
       // });
-      await runContinuousScan();
+
+      // /-----------------------------------------------------------
+      // await runContinuousScan();
+      // setInterval(() => {
+      //   emitErrorEvent(io, "errorType", "errorMessage");
+      // }, 5000);
     } catch (error) {
+      emitErrorEvent(io, "modbus-connection-error", JSON.stringify(error));
       logger.error("Failed to initialize Modbus connection:", error);
     }
   });
@@ -205,10 +222,11 @@ app.prepare().then(() => {
       });
     } catch (error) {
       logger.error(`Error reading register for client ${socket.id}:`, error);
-      socket.emit("error", {
-        message: "Failed to read register",
-        details: error.message,
-      });
+      // socket.emit("error", {
+      //   message: "Failed to read register",
+      //   details: error.message,
+      // });
+      emitErrorEvent(io, "register-read-failure", "Failed to read register");
     }
   }
 

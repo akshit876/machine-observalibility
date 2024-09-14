@@ -46,7 +46,7 @@ const codeFormat = () => {
   return `${dd}${mm}${yy}${increment}`;
 };
 
-async function waitForBitToBecomeOne(register, bit) {
+export async function waitForBitToBecomeOne(register, bit) {
   return new Promise((resolve) => {
     const interval = setInterval(async () => {
       const bitValue = await readRegister(register, 1);
@@ -57,6 +57,40 @@ async function waitForBitToBecomeOne(register, bit) {
     }, 100);
   });
 }
+/**
+ *
+ * @param {*} io cycle start read register 1400,0
+ *   then read data from scanner 1470 -> read 20 bit
+ *   if ok -> machine not to proceed ahead  1414,.d 13 wrie to plc
+ *   else ng  -> 1414 14 write this to plc
+ *   ocr read -> 1410 1 read from plc
+ *   then continue to read from it 1450 20 bit
+ *   write to plc ki ocr read for first time 1414 15
+ *   for now direct send ocr data into code.txt
+ *   1410 2 read from plc send data to laser means write into code.txt
+ * wrtie to plc confimatoin into 1415 1 on
+ * then scan position it comes into
+ *  3rd cycle scanning
+ *   1410  3  read from plc to begin reading data from scanner
+ *   scanner data 1470 20 bit
+ *   grade if found or not
+ *   data matching code.txt and scanner data
+ * write to plc
+ *  ok -> 1414 13
+ *ng ->1414 14
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ * @param {*} part
+ */
 
 export async function handleFirstScan(io, part) {
   firstScanData = processFirstScan(part);
