@@ -14,6 +14,160 @@ import { saveToCSVNew } from "./scanUtils.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const SHIFTS = ["A", "B", "C"];
+let currentShiftIndex = 0;
+let serialNumber = 1;
+let lastResetDate = new Date();
+import { format, parse, isAfter, setHours, setMinutes } from "date-fns";
+
+let cycleCompleted = false;
+
+// User-defined reset time (e.g., 6:00 AM)
+const RESET_HOUR = 6;
+const RESET_MINUTE = 0;
+
+function getCurrentShift() {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  if (currentHour >= 6 && currentHour < 14.5) return "A";
+  if (currentHour >= 14.5 && currentHour < 23) return "B";
+  return "C";
+}
+
+async function initializeSerialNumber() {
+  try {
+    const lastSerialNumber = await mongoDBService.getLatestSerialNumber();
+    serialNumber = lastSerialNumber + 1;
+    logger.info(`Initialized serial number to: ${serialNumber}`);
+  } catch (error) {
+    logger.error("Error initializing serial number:", error);
+    throw error;
+  }
+}
+
+function checkAndResetSerialNumber() {
+  const now = new Date();
+  const currentShift = getCurrentShift();
+  const resetTime = setMinutes(setHours(now, RESET_HOUR), RESET_MINUTE);
+
+  // Check if it's reset time
+  if (now.getHours() === RESET_HOUR && now.getMinutes() === RESET_MINUTE) {
+    serialNumber = 1;
+    cycleCompleted = false;
+    lastResetDate = now;
+    logger.info(`Reset time reached. Serial number reset to 0001.`);
+    return;
+  }
+
+  // Check if a new day has started and we've passed the reset time
+  if (isAfter(now, lastResetDate) && isAfter(now, resetTime)) {
+    serialNumber = 1;
+    cycleCompleted = false;
+    lastResetDate = now;
+    logger.info(
+      "New day started after reset time. Serial number reset to 0001."
+    );
+    return;
+  }
+
+  // Check for shift change
+  if (SHIFTS[currentShiftIndex] !== currentShift) {
+    currentShiftIndex = (currentShiftIndex + 1) % SHIFTS.length;
+    if (currentShiftIndex === 0) {
+      // Complete cycle
+      serialNumber = 1;
+      cycleCompleted = true;
+      logger.info(
+        "Complete shift cycle finished. Serial number reset to 0001."
+      );
+    }
+  }
+}
+
+function getNextSerialNumber() {
+  checkAndResetSerialNumber();
+  const currentShift = SHIFTS[currentShiftIndex];
+  const currentSerialNumber = serialNumber.toString().padStart(4, "0");
+  serialNumber++;
+  return { shift: currentShift, serialNumber: currentSerialNumber };
+}
+
+function generateNewOCRData(originalOCRData) {
+  const date = format(new Date(), "yyMMdd");
+  const { shift, serialNumber } = getNextSerialNumber();
+  const remainingData = originalOCRData.slice(10); // Assuming the first 10 characters are date and serial
+
+  return {
+    ocrData: `${date}${serialNumber}${remainingData}`,
+    shift,
+    serialNumber,
+  };
+}
+
+async function saveToMongoDB(
+  io,
+  serialNumber,
+  scannerData,
+  ocrData,
+  grade,
+  status,
+  shift
+) {
+  const now = new Date();
+  const timestamp = format(now, "yyyy-MM-dd HH:mm:ss");
+
+  const data = {
+    Timestamp: new Date(timestamp),
+    SerialNumber: serialNumber,
+    ScannerData: scannerData,
+    OCRData: ocrData,
+    Grade: grade,
+    Status: status,
+    Shift: shift,
+  };
+
+  try {
+    // Save to MongoDB
+    await mongoDBService.insertRecord(data);
+    logger.info(`Data saved to MongoDB`);
+
+    // Save to shift-specific CSV (daily file)
+    await saveToShiftCSV(data);
+
+    io.emit("data-update");
+  } catch (error) {
+    logger.error("Error saving data:", error);
+    throw error;
+  }
+}
+
+async function saveToShiftCSV(data) {
+  const today = format(new Date(), "dd-MM-yy");
+  const shiftCsvPath = path.join(
+    __dirname,
+    "../data",
+    `${today}_${data.Shift}.csv`
+  );
+
+  const csvWriter = createObjectCsvWriter({
+    path: shiftCsvPath,
+    header: [
+      { id: "Timestamp", title: "Timestamp" },
+      { id: "SerialNumber", title: "SerialNumber" },
+      { id: "ScannerData", title: "ScannerData" },
+      { id: "OCRData", title: "OCRData" },
+      { id: "Grade", title: "Grade" },
+      { id: "Status", title: "Status" },
+      { id: "Shift", title: "Shift" },
+    ],
+    append: fs.existsSync(shiftCsvPath),
+  });
+
+  await csvWriter.writeRecords([data]);
+  logger.info(`Data saved to shift-specific CSV: ${shiftCsvPath}`);
+}
+
 const CODE_FILE_PATH = path.join(__dirname, "../data/code.txt");
 async function writeOCRDataToFile(ocrDataString) {
   try {
@@ -79,11 +233,35 @@ async function compareScannerDataWithCode(scannerData) {
     throw error;
   }
 }
+async function generateTextForLaser(ocrData) {
+  // Extract necessary data from OCR data
+  const date = ocrData.slice(0, 6); // Assuming date is the first 6 characters
+  const serial = ocrData.slice(12, 16); // Assuming serial is at specific positions
+  const numericData = ocrData.slice(6, 12); // Adjust as per actual data structure
+
+  // Format the text to be sent to the laser
+  return `NUMERIC DATA\nDATE: ${date}\nSERIAL: ${serial}\nNUMERIC DATA: ${numericData}\nTEXT FILE SEND TO LASER`;
+}
+
+async function generateCodeData(ocrData) {
+  // Extract necessary data from OCR data
+  const vendorCode = "R085"; // Example static value
+  const dieNo = ocrData.slice(12, 16); // Adjust as per actual data structure
+  const partNo = "11210M02L20"; // Example static value
+  const date = ocrData.slice(0, 6); // Assuming date is the first 6 characters
+  const shift = "A"; // Example static value
+  const serial = ocrData.slice(12, 16); // Adjust as per actual data structure
+
+  // Format the code data
+  return `CODE DATA\nVENDER CODE: ${vendorCode}\nDIE NO.: ${dieNo}\nPART NO.: ${partNo}\nDATE: ${date}\nSHIFT: ${shift}\nSERIAL: ${serial}\nCADE DATA: ${vendorCode}${partNo}${date}${serial}`;
+}
 let c = 0;
 async function runContinuousScan() {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
+      await mongoDBService.connect();
+      await initializeSerialNumber();
       console.log({ c });
       //   await writeBitsWithRest(1415, 2, 0);
       //   await writeBitsWithRest(1415, 2, 1);
@@ -208,4 +386,23 @@ async function runContinuousScan() {
     }
   }
 }
+
+// Make sure to call this function when your application starts
+runContinuousScan().catch((error) => {
+  logger.error("Failed to start continuous scan:", error);
+  process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on("SIGINT", async () => {
+  logger.info("Received SIGINT. Closing MongoDB connection and exiting...");
+  await mongoDBService.disconnect();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  logger.info("Received SIGTERM. Closing MongoDB connection and exiting...");
+  await mongoDBService.disconnect();
+  process.exit(0);
+});
 runContinuousScan();

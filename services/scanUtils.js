@@ -35,11 +35,20 @@ export function updateBuffer(data) {
 }
 
 // Process the first scan
-export function processFirstScan(part) {
-  logger.info(`First scan data received: ${part}`);
-  buffer = ""; // Clear buffer after processing first scan
-  return part; // Return the first scan data for later comparison
-}
+// export async function processFirstScan(part) {
+//   try {
+//     await waitForBitToBecomeOne(1400, 1);
+//     const cameraData = await readRegisterAndProvideASCII(1450, 15);
+//     const cameraDataString = String.fromCharCode(...cameraData);
+//   } catch (error) {
+//     logger.error("Error during first scan:", error);
+//   }
+
+//   const DEFAULT_CAMERA_DATA = await getData("defaultCameraData");
+//   logger.info(`First scan data received: ${part}`);
+//   buffer = ""; // Clear buffer after processing first scan
+//   return part; // Return the first scan data for later comparison
+// }
 
 // Process the second scan
 export async function processSecondScan(io, part, firstScanData) {
@@ -118,62 +127,6 @@ function sanitizeData(data) {
   return data.replace(/"/g, '""').replace(/\r?\n|\r/g, " ");
 }
 
-export async function saveToCSVNew(
-  io,
-  sno,
-  scannerResult,
-  ocrResult,
-  grading,
-  finalResult
-) {
-  const fileName = `${getCurrentDate()}.csv`;
-  const filePath = path.join(__dirname, "../data", fileName);
-
-  const timestamp = `${new Date().toLocaleString("en-US", {
-    hour12: true,
-  })}`; // Format timestamp in 12-hour format
-  const finalResultText = finalResult ? "OK" : "NG"; // Convert final result to text
-
-  const record = [
-    sno,
-    timestamp,
-    scannerResult,
-    ocrResult,
-    grading,
-    finalResultText,
-  ];
-
-  const fileExists = fs.existsSync(filePath);
-
-  const csvStream = fs.createWriteStream(filePath, {
-    flags: fileExists ? "a" : "w", // Append if file exists, else create a new file
-  });
-
-  const stringifier = stringify({
-    header: !fileExists,
-    columns: fileExists
-      ? undefined
-      : [
-          "SNo",
-          "Time",
-          "Scanner Result",
-          "OCR Result",
-          "Grading",
-          "Final Result",
-        ],
-    quoted: true, // Ensure fields are quoted to handle newlines and special characters
-  });
-
-  stringifier.pipe(csvStream);
-  stringifier.write(record);
-  stringifier.end();
-
-  logger.info(`Data saved to CSV file: ${fileName}`);
-
-  // Emit CSV data to the frontend
-  readCsvAndEmit(io, filePath);
-}
-
 export async function saveToCSV(io, manualCode, result) {
   const fileName = `${getCurrentDate()}.csv`;
   const filePath = path.join(__dirname, "../data", fileName);
@@ -191,6 +144,63 @@ export async function saveToCSV(io, manualCode, result) {
   const stringifier = stringify({
     header: !fileExists,
     columns: fileExists ? undefined : ["Timestamp", "Code", "Result"],
+    quoted: true, // Ensure that fields are quoted to handle newlines and special characters
+  });
+  stringifier.pipe(csvStream);
+  stringifier.write(record);
+  stringifier.end();
+
+  logger.info(`Data saved to CSV file: ${fileName}`);
+
+  // Emit CSV data to the frontend
+  readCsvAndEmit(io, filePath);
+}
+
+export async function saveToCSVNew(
+  io,
+  sno,
+  scannerData,
+  ocrData,
+  grade,
+  result,
+  additionalInfo // New parameter
+) {
+  const fileName = `${getCurrentDate()}.csv`;
+  const filePath = path.join(__dirname, "../data", fileName);
+
+  const timestamp = `${new Date().toISOString().split("T")[0]} ${getCurrentTime24HourFormat()}`;
+  const sanitizedScannerData = sanitizeData(scannerData);
+  const sanitizedOcrData = sanitizeData(ocrData);
+  const sanitizedResult = sanitizeData(result);
+  const sanitizedAdditionalInfo = sanitizeData(additionalInfo); // Sanitize new parameter
+  const record = [
+    timestamp,
+    sno,
+    sanitizedScannerData,
+    sanitizedOcrData,
+    grade,
+    sanitizedResult,
+    sanitizedAdditionalInfo,
+  ]; // Include new parameter in record
+
+  const fileExists = fs.existsSync(filePath);
+
+  const csvStream = fs.createWriteStream(filePath, {
+    flags: fileExists ? "a" : "w",
+  });
+  const stringifier = stringify({
+    header: !fileExists,
+    columns: fileExists
+      ? undefined
+      : [
+          "Timestamp",
+          "Sno",
+          "Scanner Data",
+          "OCR Data",
+          "Grade",
+          "Result",
+          "Additional Info",
+        ], // Update header to include new parameter
     quoted: true, // Ensure that fields are quoted to handle newlines and special characters
   });
   stringifier.pipe(csvStream);
