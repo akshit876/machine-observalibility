@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb";
-import logger from "../logger";
+import logger from "../logger.js";
 // import logger from "./logger.js";
 
 class MongoDBService {
@@ -9,14 +9,14 @@ class MongoDBService {
     this.collection = null;
   }
 
-  async connect() {
+  async connect(dbName, collectionName) {
     try {
       const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
       this.client = new MongoClient(uri);
       await this.client.connect();
-      this.db = this.client.db(process.env.MONGODB_DB_NAME || "main_data");
-      this.collection = this.db.collection("records");
-      logger.info("Connected successfully to MongoDB");
+      this.db = this.client.db(dbName);
+      this.collection = this.db.collection(collectionName);
+      logger.info(`Connected successfully to MongoDB database: ${dbName}`);
     } catch (error) {
       logger.error("MongoDB connection error:", error);
       throw error;

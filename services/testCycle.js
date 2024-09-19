@@ -6,6 +6,8 @@ import {
   //   writeBitsWithRestsWithRest,
 } from "./modbus.js";
 import { waitForBitToBecomeOne } from "./serialPortService.js";
+
+import SerialNumberGen from "./serialNumber.js";
 import fs from "fs";
 import path, { dirname } from "path";
 import { getData } from "./lowDbService.js";
@@ -16,94 +18,37 @@ const __dirname = dirname(__filename);
 
 const SHIFTS = ["A", "B", "C"];
 let currentShiftIndex = 0;
-let serialNumber = 1;
+// let serialNumber = 1;
 let lastResetDate = new Date();
 import { format, parse, isAfter, setHours, setMinutes } from "date-fns";
+import mongoDbService from "./mongoDbService.js";
 
-let cycleCompleted = false;
+// let cycleCompleted = false;
 
-// User-defined reset time (e.g., 6:00 AM)
-const RESET_HOUR = 6;
-const RESET_MINUTE = 0;
+// // User-defined reset time (e.g., 6:00 AM)
+// const RESET_HOUR = 6;
+// const RESET_MINUTE = 0;
 
-function getCurrentShift() {
-  const now = new Date();
-  const currentHour = now.getHours();
+// function getCurrentShift() {
+//   const now = new Date();
+//   const currentHour = now.getHours();
 
-  if (currentHour >= 6 && currentHour < 14.5) return "A";
-  if (currentHour >= 14.5 && currentHour < 23) return "B";
-  return "C";
-}
+//   if (currentHour >= 6 && currentHour < 14.5) return "A";
+//   if (currentHour >= 14.5 && currentHour < 23) return "B";
+//   return "C";
+// }
 
-async function initializeSerialNumber() {
-  try {
-    const lastSerialNumber = await mongoDBService.getLatestSerialNumber();
-    serialNumber = lastSerialNumber + 1;
-    logger.info(`Initialized serial number to: ${serialNumber}`);
-  } catch (error) {
-    logger.error("Error initializing serial number:", error);
-    throw error;
-  }
-}
+// function generateNewOCRData(originalOCRData) {
+//   const date = format(new Date(), "yyMMdd");
+//   const { shift, serialNumber } = getNextSerialNumber();
+//   const remainingData = originalOCRData.slice(10); // Assuming the first 10 characters are date and serial
 
-function checkAndResetSerialNumber() {
-  const now = new Date();
-  const currentShift = getCurrentShift();
-  const resetTime = setMinutes(setHours(now, RESET_HOUR), RESET_MINUTE);
-
-  // Check if it's reset time
-  if (now.getHours() === RESET_HOUR && now.getMinutes() === RESET_MINUTE) {
-    serialNumber = 1;
-    cycleCompleted = false;
-    lastResetDate = now;
-    logger.info(`Reset time reached. Serial number reset to 0001.`);
-    return;
-  }
-
-  // Check if a new day has started and we've passed the reset time
-  if (isAfter(now, lastResetDate) && isAfter(now, resetTime)) {
-    serialNumber = 1;
-    cycleCompleted = false;
-    lastResetDate = now;
-    logger.info(
-      "New day started after reset time. Serial number reset to 0001."
-    );
-    return;
-  }
-
-  // Check for shift change
-  if (SHIFTS[currentShiftIndex] !== currentShift) {
-    currentShiftIndex = (currentShiftIndex + 1) % SHIFTS.length;
-    if (currentShiftIndex === 0) {
-      // Complete cycle
-      serialNumber = 1;
-      cycleCompleted = true;
-      logger.info(
-        "Complete shift cycle finished. Serial number reset to 0001."
-      );
-    }
-  }
-}
-
-function getNextSerialNumber() {
-  checkAndResetSerialNumber();
-  const currentShift = SHIFTS[currentShiftIndex];
-  const currentSerialNumber = serialNumber.toString().padStart(4, "0");
-  serialNumber++;
-  return { shift: currentShift, serialNumber: currentSerialNumber };
-}
-
-function generateNewOCRData(originalOCRData) {
-  const date = format(new Date(), "yyMMdd");
-  const { shift, serialNumber } = getNextSerialNumber();
-  const remainingData = originalOCRData.slice(10); // Assuming the first 10 characters are date and serial
-
-  return {
-    ocrData: `${date}${serialNumber}${remainingData}`,
-    shift,
-    serialNumber,
-  };
-}
+//   return {
+//     ocrData: `${date}${serialNumber}${remainingData}`,
+//     shift,
+//     serialNumber,
+//   };
+// }
 
 async function saveToMongoDB(
   io,
@@ -112,7 +57,11 @@ async function saveToMongoDB(
   ocrData,
   grade,
   status,
-  shift
+  shift,
+  vendorCode,
+  die,
+  partNo,
+  date
 ) {
   const now = new Date();
   const timestamp = format(now, "yyyy-MM-dd HH:mm:ss");
@@ -125,50 +74,55 @@ async function saveToMongoDB(
     Grade: grade,
     Status: status,
     Shift: shift,
+    VendorCode: vendorCode,
+    Die: die,
+    PartNo: partNo,
+    Date: date,
   };
 
   try {
     // Save to MongoDB
-    await mongoDBService.insertRecord(data);
+    await mongoDbService.insertRecord(data);
     logger.info(`Data saved to MongoDB`);
 
     // Save to shift-specific CSV (daily file)
-    await saveToShiftCSV(data);
+    // await saveToShiftCSV(data);
 
-    io.emit("data-update");
+    if (io) io.emit("data-update");
   } catch (error) {
     logger.error("Error saving data:", error);
     throw error;
   }
 }
 
-async function saveToShiftCSV(data) {
-  const today = format(new Date(), "dd-MM-yy");
-  const shiftCsvPath = path.join(
-    __dirname,
-    "../data",
-    `${today}_${data.Shift}.csv`
-  );
+// async function saveToShiftCSV(data) {
+//   const today = format(new Date(), "dd-MM-yy");
+//   const shiftCsvPath = path.join(
+//     __dirname,
+//     "../data",
+//     `${today}_${data.Shift}.csv`
+//   );
 
-  const csvWriter = createObjectCsvWriter({
-    path: shiftCsvPath,
-    header: [
-      { id: "Timestamp", title: "Timestamp" },
-      { id: "SerialNumber", title: "SerialNumber" },
-      { id: "ScannerData", title: "ScannerData" },
-      { id: "OCRData", title: "OCRData" },
-      { id: "Grade", title: "Grade" },
-      { id: "Status", title: "Status" },
-      { id: "Shift", title: "Shift" },
-    ],
-    append: fs.existsSync(shiftCsvPath),
-  });
+//   const csvWriter = createObjectCsvWriter({
+//     path: shiftCsvPath,
+//     header: [
+//       { id: "Timestamp", title: "Timestamp" },
+//       { id: "SerialNumber", title: "SerialNumber" },
+//       { id: "ScannerData", title: "ScannerData" },
+//       { id: "OCRData", title: "OCRData" },
+//       { id: "Grade", title: "Grade" },
+//       { id: "Status", title: "Status" },
+//       { id: "Shift", title: "Shift" },
+//     ],
+//     append: fs.existsSync(shiftCsvPath),
+//   });
 
-  await csvWriter.writeRecords([data]);
-  logger.info(`Data saved to shift-specific CSV: ${shiftCsvPath}`);
-}
+//   await csvWriter.writeRecords([data]);
+//   logger.info(`Data saved to shift-specific CSV: ${shiftCsvPath}`);
+// }
 
 const CODE_FILE_PATH = path.join(__dirname, "../data/code.txt");
+const TEXT_FILE_PATH = path.join(__dirname, "../data/text.txt");
 async function writeOCRDataToFile(ocrDataString) {
   try {
     await clearCodeFile(); // Clear the file before writing new data
@@ -179,6 +133,7 @@ async function writeOCRDataToFile(ocrDataString) {
     throw error;
   }
 }
+
 /**
  * Checks if the grading is valid based on the last character of the scanner result.
  * Determines the validity dynamically using the data from LowDB.
@@ -205,9 +160,9 @@ async function checkGrading(scannerResult) {
 /**
  * Clears the contents of 'code.txt'.
  */
-async function clearCodeFile() {
+async function clearCodeFile(path) {
   try {
-    fs.writeFileSync(CODE_FILE_PATH, "", "utf8"); // Overwrite with an empty string
+    fs.writeFileSync(path, "", "utf8"); // Overwrite with an empty string
     logger.info("Code file cleared.");
   } catch (error) {
     logger.error(`Error clearing code file: ${error.message}`);
@@ -233,35 +188,60 @@ async function compareScannerDataWithCode(scannerData) {
     throw error;
   }
 }
-async function generateTextForLaser(ocrData) {
+async function generateTextForLaser(serialNumber) {
   // Extract necessary data from OCR data
-  const date = ocrData.slice(0, 6); // Assuming date is the first 6 characters
-  const serial = ocrData.slice(12, 16); // Assuming serial is at specific positions
-  const numericData = ocrData.slice(6, 12); // Adjust as per actual data structure
+  // const date = ocrData.slice(0, 6); // Assuming date is the first 6 characters
+  // const serial = ocrData.slice(12, 16); // Assuming serial is at specific positions
+  // const numericData = ocrData.slice(6, 12); // Adjust as per actual data structure
+
+  const date = await readRegisterAndProvideASCII(1450, 3); // date
+  const shift = await readRegisterAndProvideASCII(1453, 1); // shift
+  const die = await readRegisterAndProvideASCII(1454, 2); // die
 
   // Format the text to be sent to the laser
-  return `NUMERIC DATA\nDATE: ${date}\nSERIAL: ${serial}\nNUMERIC DATA: ${numericData}\nTEXT FILE SEND TO LASER`;
+  // return `NUMERIC DATA\nDATE: ${date}\nSERIAL: ${serial}\nNUMERIC DATA: ${numericData}\nTEXT FILE SEND TO LASER`;
+  return `${date}${die}${serialNumber}`;
 }
 
-async function generateCodeData(ocrData) {
+async function generateCodeData(serialNumber) {
   // Extract necessary data from OCR data
-  const vendorCode = "R085"; // Example static value
-  const dieNo = ocrData.slice(12, 16); // Adjust as per actual data structure
-  const partNo = "11210M02L20"; // Example static value
-  const date = ocrData.slice(0, 6); // Assuming date is the first 6 characters
-  const shift = "A"; // Example static value
-  const serial = ocrData.slice(12, 16); // Adjust as per actual data structure
+  const vendorCode = await getData("codeData.vendor_code"); // Example static value
+  const die = await readRegisterAndProvideASCII(1454, 2); // Adjust as per actual data structure
+  const partNo = await getData("codeData.part_no"); // Example static value
+  const date = await readRegisterAndProvideASCII(1450, 3); // Assuming date is the first 6 characters
+  const shift = await readRegisterAndProvideASCII(1453, 1); // Example static value
+  // const serial = ocrData.slice(12, 16); // Adjust as per actual data structure
 
   // Format the code data
-  return `CODE DATA\nVENDER CODE: ${vendorCode}\nDIE NO.: ${dieNo}\nPART NO.: ${partNo}\nDATE: ${date}\nSHIFT: ${shift}\nSERIAL: ${serial}\nCADE DATA: ${vendorCode}${partNo}${date}${serial}`;
+  // return `CODE DATA\nVENDER CODE: ${vendorCode}\nDIE NO.: ${dieNo}\nPART NO.: ${partNo}\nDATE: ${date}\nSHIFT: ${shift}\nSERIAL: ${serial}\nCADE DATA: ${vendorCode}${partNo}${date}${serial}`;
+  // Format the final string
+  const finalString = `${vendorCode}${die}${partNo}${date}${shift}${serialNumber}`;
+
+  // Return an object with all components and the final string
+  return {
+    vendorCode,
+    die,
+    partNo,
+    date,
+    shift,
+    serialNumber,
+    finalString,
+  };
 }
 let c = 0;
-async function runContinuousScan() {
+async function runContinuousScan(io = null) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      await mongoDBService.connect();
-      await initializeSerialNumber();
+      await mongoDbService.connect("main-data", "records");
+      // await initializeSerialNumber();
+      await SerialNumberGen.initialize("main-data", "records");
+
+      // Set a custom reset time if needed (optional)
+      SerialNumberGen.setResetTime(6, 0);
+
+      const serialNumber = SerialNumberGen.getNextSerialNumber();
+
       console.log({ c });
       //   await writeBitsWithRest(1415, 2, 0);
       //   await writeBitsWithRest(1415, 2, 1);
@@ -306,6 +286,9 @@ async function runContinuousScan() {
       await writeOCRDataToFile(ocrData);
       //   await clearCodeFile("code.txt");
       //   fs.writeFileSync(path.join(__dirname, "../data/code.txt"), finalCode);
+      await writeTextDataToFile(serialNumber);
+      const { vendorCode, die, partNo, date, shift } =
+        await writeCodeDataToFile(serialNumber);
 
       // **Wait until bit 2 of register 1410 is 1 to send data to laser**
       await waitForBitToBecomeOne(1410, 2);
@@ -351,24 +334,34 @@ async function runContinuousScan() {
       // **Write to PLC based on matching result**
       if (isDataMatching && isGradingValid) {
         // Save results to CSV
-        await saveToCSVNew(
-          io,
-          c + 1,
+        await saveToMongoDB(
+          null, // chnage this io in server.js
+          serialNumber,
           scannerData3rdCycle,
           ocrData,
           scannerData3rdCycle.slice(-1).toUpperCase(),
-          "OK"
+          isDataMatching && isGradingValid ? "OK" : "NG",
+          shift,
+          vendorCode,
+          die,
+          partNo,
+          date
         );
         await writeBitsWithRest(1414, 11, 1, 2000); // **OK -> Write to PLC**
         logger.info("Scanner data matches code.txt, OK signal written to PLC.");
       } else {
-        await saveToCSVNew(
-          io,
-          c + 1,
+        await saveToMongoDB(
+          null, // chnage this io in server.js
+          serialNumber,
           scannerData3rdCycle,
           ocrData,
           scannerData3rdCycle.slice(-1).toUpperCase(),
-          "NG"
+          isDataMatching && isGradingValid ? "OK" : "NG",
+          shift,
+          vendorCode,
+          die,
+          partNo,
+          date
         );
         await writeBitsWithRest(1414, 12, 1); // **NG -> Write to PLC**
         logger.info(
@@ -386,7 +379,37 @@ async function runContinuousScan() {
     }
   }
 }
+async function writeTextDataToFile(serialNumber) {
+  try {
+    await clearCodeFile(TEXT_FILE_PATH); // Clear the file before writing new data
+    const text = await generateTextForLaser(serialNumber);
+    fs.writeFileSync(TEXT_FILE_PATH, text, "utf8");
+    logger.info("OCR data written to code.txt");
+  } catch (error) {
+    logger.error(`Error writing OCR data to file: ${error.message}`);
+    throw error;
+  }
+}
 
+async function writeCodeDataToFile(serialNumber) {
+  try {
+    await clearCodeFile(CODE_FILE_PATH); // Clear the file before writing new data
+    const { vendorCode, die, partNo, date, shift, finalString } =
+      await generateCodeData(serialNumber);
+    fs.writeFileSync(CODE_FILE_PATH, finalString, "utf8");
+    logger.info("OCR data written to code.txt");
+    return {
+      vendorCode,
+      die,
+      partNo,
+      date,
+      shift,
+    };
+  } catch (error) {
+    logger.error(`Error writing OCR data to file: ${error.message}`);
+    throw error;
+  }
+}
 // Make sure to call this function when your application starts
 runContinuousScan().catch((error) => {
   logger.error("Failed to start continuous scan:", error);
@@ -396,13 +419,13 @@ runContinuousScan().catch((error) => {
 // Handle graceful shutdown
 process.on("SIGINT", async () => {
   logger.info("Received SIGINT. Closing MongoDB connection and exiting...");
-  await mongoDBService.disconnect();
+  await mongoDbService.disconnect();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   logger.info("Received SIGTERM. Closing MongoDB connection and exiting...");
-  await mongoDBService.disconnect();
+  await mongoDbService.disconnect();
   process.exit(0);
 });
 runContinuousScan();

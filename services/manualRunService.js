@@ -1,4 +1,8 @@
-import { writeBit } from "./modbus.js";
+import {
+  readRegister,
+  readRegisterAndProvideASCII,
+  writeBit,
+} from "./modbus.js";
 import logger from "../logger.js";
 import { emitErrorEvent } from "./utils.js";
 // import { emitErrorEvent } from "../utils/errorHandler.js"; // Import the error utility
@@ -60,10 +64,14 @@ async function runTest() {
     // await writeBit(1414, 13, 0);
     // await writeBit(1414, 12, 0);
     // await writeBit(1415, 2, 0); //rest
-    await writeBit(1415, 9, 1);
-    await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
-    await writeBit(1415, 2, 0); //rest
-    await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    // await writeBit(1415, 9, 1);
+    // await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    // await writeBit(1415, 2, 0); //rest
+    // await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    // await readRegister(1450, 20);
+    await readRegisterAndProvideASCII(1450, 3); //date
+    await readRegisterAndProvideASCII(1453, 1); //shift
+    await readRegisterAndProvideASCII(1454, 2); //die
     // logger.info(`Manual run operation reset: ${operation}`);
   } catch (resetError) {
     // const errorMessage = `Error resetting manual run operation ${operation}: ${resetError.message}`;
