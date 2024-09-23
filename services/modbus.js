@@ -27,6 +27,7 @@ class ModbusConnection {
       this.isConnected = true;
       logger.info(`Connected to Modbus device at ${MODBUS_IP}:${MODBUS_PORT}`);
     } catch (error) {
+      console.log("connect", { error });
       emitErrorEvent(
         this.socket,
         "MODBUS_CONNECT_ERROR",
@@ -100,6 +101,7 @@ class ModbusConnection {
         );
       }, delay);
     } catch (error) {
+      console.error({ error });
       emitErrorEvent(
         this.socket,
         "MODBUS_WRITE_BIT_RESET_ERROR",
@@ -115,7 +117,8 @@ class ModbusConnection {
       const data = await this.readRegister(address, len);
       let asciiString = this.convertToASCII(data);
       // Remove trailing null characters (\x00) from the ASCII string
-      asciiString = asciiString.replace(/\x00+$/, "");
+      // asciiString = asciiString.replace(/\x00+$/, "");
+      asciiString = asciiString.replace(/\x00/g, " ").trim();
       console.log({ asciiString });
       console.log(
         `Read registers starting at address ${address} (length: ${len}): ${data} (ASCII: ${asciiString})`
@@ -209,6 +212,7 @@ class ModbusConnection {
         `Successfully wrote bit ${bitPosition} with value ${value} to register ${address}`
       );
     } catch (error) {
+      console.log({ error });
       emitErrorEvent(
         this.socket,
         "MODBUS_WRITE_BIT_ERROR",
@@ -342,3 +346,5 @@ export const readDataAndConfirm = (
     outputFeedbackBit,
     delay
   );
+
+// writeBitsWithRest(1415, 9, 1, 2000);

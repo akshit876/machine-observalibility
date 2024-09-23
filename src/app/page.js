@@ -13,7 +13,7 @@ function AdminPanel() {
   console.log({ csvData });
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <StyledTable csvData={csvData} />
+      <StyledTable data={csvData?.data} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { fileURLToPath } from "url";
 import logger from "../logger.js";
 import {
+  connect,
   readRegisterAndProvideASCII,
   writeBitsWithRest,
   //   writeBitsWithRestsWithRest,
@@ -11,7 +12,7 @@ import SerialNumberGen from "./serialNumber.js";
 import fs from "fs";
 import path, { dirname } from "path";
 import { getData } from "./lowDbService.js";
-import { saveToCSVNew } from "./scanUtils.js";
+// import { saveToCSVNew } from "./scanUtils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -88,7 +89,9 @@ async function saveToMongoDB(
     // Save to shift-specific CSV (daily file)
     // await saveToShiftCSV(data);
 
-    if (io) io.emit("data-update");
+    if (io) {
+      mongoDbService.sendMongoDbDataToClient(io, "main-data", "records");
+    }
   } catch (error) {
     logger.error("Error saving data:", error);
     throw error;
@@ -125,7 +128,7 @@ const CODE_FILE_PATH = path.join(__dirname, "../data/code.txt");
 const TEXT_FILE_PATH = path.join(__dirname, "../data/text.txt");
 async function writeOCRDataToFile(ocrDataString) {
   try {
-    await clearCodeFile(); // Clear the file before writing new data
+    await clearCodeFile(CODE_FILE_PATH); // Clear the file before writing new data
     fs.writeFileSync(CODE_FILE_PATH, ocrDataString, "utf8");
     logger.info("OCR data written to code.txt");
   } catch (error) {
@@ -205,9 +208,10 @@ async function generateTextForLaser(serialNumber) {
 
 async function generateCodeData(serialNumber) {
   // Extract necessary data from OCR data
-  const vendorCode = await getData("codeData.vendor_code"); // Example static value
+  const codeData = await getData("codeData");
+  const vendorCode = codeData?.vendor_code; // Example static value
   const die = await readRegisterAndProvideASCII(1454, 2); // Adjust as per actual data structure
-  const partNo = await getData("codeData.part_no"); // Example static value
+  const partNo = codeData?.part_no; // Example static value
   const date = await readRegisterAndProvideASCII(1450, 3); // Assuming date is the first 6 characters
   const shift = await readRegisterAndProvideASCII(1453, 1); // Example static value
   // const serial = ocrData.slice(12, 16); // Adjust as per actual data structure
@@ -229,10 +233,11 @@ async function generateCodeData(serialNumber) {
   };
 }
 let c = 0;
-async function runContinuousScan(io = null) {
+export async function runContinuousScan(io = null) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
+      // connect();
       await mongoDbService.connect("main-data", "records");
       // await initializeSerialNumber();
       await SerialNumberGen.initialize("main-data", "records");
@@ -247,7 +252,7 @@ async function runContinuousScan(io = null) {
       //   await writeBitsWithRest(1415, 2, 1);
       if (c > 0) await waitForBitToBecomeOne(1415, 7);
       await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
-      await writeBitsWithRest(1415, 9, 1);
+      await writeBitsWithRest(1415, 9, 1, 2000);
       // **Cycle Start**: Wait until bit 0 of register 1400 is 1
       await waitForBitToBecomeOne(1400, 0);
       logger.info("Bit 0 of register 1400 is now 1, proceeding with scan.");
@@ -332,10 +337,11 @@ async function runContinuousScan(io = null) {
       logger.info(`Grading Result: ${isGradingValid}`);
 
       // **Write to PLC based on matching result**
-      if (isDataMatching && isGradingValid) {
+      // if (isDataMatching && isGradingValid) {
+      if (true) {
         // Save results to CSV
         await saveToMongoDB(
-          null, // chnage this io in server.js
+          io, // chnage this io in server.js
           serialNumber,
           scannerData3rdCycle,
           ocrData,
@@ -351,7 +357,7 @@ async function runContinuousScan(io = null) {
         logger.info("Scanner data matches code.txt, OK signal written to PLC.");
       } else {
         await saveToMongoDB(
-          null, // chnage this io in server.js
+          io, // chnage this io in server.js
           serialNumber,
           scannerData3rdCycle,
           ocrData,
@@ -411,10 +417,10 @@ async function writeCodeDataToFile(serialNumber) {
   }
 }
 // Make sure to call this function when your application starts
-runContinuousScan().catch((error) => {
-  logger.error("Failed to start continuous scan:", error);
-  process.exit(1);
-});
+// runContinuousScan().catch((error) => {
+//   logger.error("Failed to start continuous scan:", error);
+//   process.exit(1);
+// });
 
 // Handle graceful shutdown
 process.on("SIGINT", async () => {
@@ -428,4 +434,4 @@ process.on("SIGTERM", async () => {
   await mongoDbService.disconnect();
   process.exit(0);
 });
-runContinuousScan();
+// runContinuousScan(null).then((o) => console.log({ o }));

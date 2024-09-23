@@ -18,6 +18,7 @@ class MongoDBService {
       this.collection = this.db.collection(collectionName);
       logger.info(`Connected successfully to MongoDB database: ${dbName}`);
     } catch (error) {
+      console.error({ error });
       logger.error("MongoDB connection error:", error);
       throw error;
     }
@@ -101,6 +102,60 @@ class MongoDBService {
     } catch (error) {
       logger.error("Error updating record:", error);
       throw error;
+    }
+  }
+
+  async sendMongoDbDataToClient(socket, dbName, collectionName) {
+    try {
+      // Check if we're connected to the database, if not, try to connect
+      if (!this.collection) {
+        logger.info(
+          "MongoDB connection not established. Attempting to connect..."
+        );
+        if (!dbName || !collectionName) {
+          throw new Error(
+            "Database name and collection name are required for connection"
+          );
+        }
+        await this.connect(dbName, collectionName);
+      }
+
+      // Fetch data from MongoDB, sorted in descending order by Timestamp
+      const data = await this.collection
+        .find({})
+        .sort({ Timestamp: -1 })
+        .toArray();
+
+      if (data.length === 0) {
+        logger.info("No data found in MongoDB collection.");
+        socket.emit("mongodb-data", { data: [] });
+        return;
+      }
+
+      // Transform the data
+      const transformedData = data.map((item) => ({
+        Timestamp: item.Timestamp,
+        SerialNumber: item.SerialNumber,
+        ScannerData: item.ScannerData,
+        OCRData: item.OCRData,
+        Grade: item.Grade,
+        Status: item.Status,
+        Shift: item.Shift,
+        VendorCode: item.VendorCode,
+        Die: item.Die,
+        PartNo: item.PartNo,
+        Date: item.Date,
+      }));
+
+      console.log({ transformedData });
+
+      // Send the data to the client
+      socket.emit("csv-data", { data: transformedData });
+      logger.info(`Emitted MongoDB data to client: ${socket.id}`);
+    } catch (error) {
+      console.error({ error });
+      logger.error("Error in sendMongoDbDataToClient: ", error.message);
+      socket.emit("error", { message: "Error fetching data from database" });
     }
   }
 }

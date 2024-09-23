@@ -69,10 +69,12 @@ async function getAllData() {
 export { setData, getData, deleteData, getAllData };
 
 // For testing purposes
-try {
-  await initDb(); // Ensure DB is initialized before testing
-  await setData("abc", 190);
-  console.log("Data set successfully");
-} catch (error) {
-  console.error("Error setting data:", error);
-}
+// try {
+//   await initDb(); // Ensure DB is initialized before testing
+//   await setData("abc", 190);
+//   console.log("Data set successfully");
+//   const vendorCode = await getData("codeData");
+//   console.log({ vendorCode: vendorCode?.vendor_code });
+// } catch (error) {
+//   console.error("Error setting data:", error);
+// }

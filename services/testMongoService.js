@@ -72,4 +72,4 @@ async function insertDummyRecords() {
   console.log("Inserted 20 dummy records");
 }
 
-runTests().catch(console.error);
+// runTests().catch(console.error);

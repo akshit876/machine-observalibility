@@ -5,55 +5,60 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 
-const StyledTable = ({ csvData }) => {
-  if (!csvData || csvData.length === 0) {
+const StyledTable = ({ data }) => {
+  if (!data || data.length === 0) {
     return <p>No data available</p>;
   }
 
   // Define the headers for the table
-  const headers = ["Time", "Marking Data", "Result"];
-
-  // Rows (assume the data does not include a header row in the CSV)
-  const rows = csvData;
+  const headers = [
+    { key: "Timestamp", label: "Timestamp" },
+    { key: "SerialNumber", label: "Serial Number" },
+    { key: "ScannerData", label: "Scanner Data" },
+    { key: "OCRData", label: "OCR Data" },
+    { key: "Grade", label: "Grade" },
+    { key: "Status", label: "Status" },
+    { key: "Shift", label: "Shift" },
+  ];
 
   return (
-    <Card className="max-w-7xl mx-auto mt-8 shadow-lg">
+    <Card className="w-full mt-8 shadow-lg overflow-hidden">
       <CardHeader>
         <h1 className="text-2xl font-bold text-gray-800">Scan Results</h1>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <Table className="w-full table-auto">
-            {/* <TableHead>
+          <Table className="w-full">
+            <TableHeader>
               <TableRow>
-                {headers.map((header, index) => (
+                {headers.map((header) => (
                   <TableHead
-                    key={index}
-                    className="bg-gray-50 text-left text-sm font-medium text-gray-500 border-b"
+                    key={header.key}
+                    className="bg-gray-50 text-left text-sm font-medium text-gray-500 py-3 px-4"
                   >
-                    {header}
+                    {header.label}
                   </TableHead>
                 ))}
               </TableRow>
-            </TableHead> */}
+            </TableHeader>
             <TableBody>
-              {rows.map((row, rowIndex) => (
+              {data.map((row, rowIndex) => (
                 <TableRow
                   key={rowIndex}
-                  className={`border-b ${
-                    rowIndex % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  }`}
+                  className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
                 >
-                  {row.map((cell, cellIndex) => (
+                  {headers.map((header) => (
                     <TableCell
-                      key={cellIndex}
-                      className="text-gray-700 border-b"
+                      key={header.key}
+                      className="text-sm text-gray-700 py-3 px-4 whitespace-nowrap overflow-hidden text-ellipsis"
                     >
-                      {cell.replace(/"/g, "")}{" "}
-                      {/* Remove double quotes if any */}
+                      {header.key === "Timestamp"
+                        ? new Date(row[header.key]).toLocaleString()
+                        : row[header.key]}
                     </TableCell>
                   ))}
                 </TableRow>

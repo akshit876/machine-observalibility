@@ -12,7 +12,8 @@ export const useCsvData = () => {
 
     // Function to handle incoming CSV data
     const handleCsvData = (data) => {
-      setCsvData(data.csvData);
+      console.log({ data });
+      setCsvData(data);
       setLoading(false); // Set loading to false once data is received
     };
 

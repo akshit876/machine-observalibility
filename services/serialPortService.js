@@ -6,7 +6,7 @@ import robot from "robotjs";
 import logger from "../logger.js";
 import {
   updateBuffer,
-  processFirstScan,
+  // processFirstScan,
   processSecondScan,
   clearCodeFile,
 } from "./scanUtils.js";
@@ -93,7 +93,8 @@ export async function waitForBitToBecomeOne(register, bit) {
  */
 
 export async function handleFirstScan(io, part) {
-  firstScanData = processFirstScan(part);
+  // firstScanData = processFirstScan(part);
+  firstScanData = 1;
   console.log("firstScanData", firstScanData);
 
   if (firstScanData === "NG") {

@@ -22,6 +22,8 @@ import {
   writeRegister,
 } from "./services/modbus.js";
 import { manualRun } from "./services/manualRunService.js";
+import mongoDbService from "./services/mongoDbService.js";
+import { runContinuousScan } from "./services/testCycle.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,7 +70,12 @@ app.prepare().then(() => {
     logger.info(`New client connected: ${socket.id}`);
 
     socket.on("request-csv-data", () => {
-      sendCsvDataToClient(socket);
+      // sendCsvDataToClient(socket);
+      mongoDbService
+        .sendMongoDbDataToClient(socket, "main-data", "records")
+        .catch((error) => {
+          console.error("Error in sendMongoDbDataToClient:", error);
+        });
     });
 
     socket.on(
@@ -156,9 +163,12 @@ app.prepare().then(() => {
     try {
       await connect();
       logger.info("Modbus connection initialized");
-      // runContinuousScan().catch((error) => {
-      //   logger.error("Continuous scan process crashed:", error);
-      // });
+
+      // Make sure to call this function when your application starts
+      runContinuousScan(io).catch((error) => {
+        logger.error("Failed to start continuous scan:", error);
+        process.exit(1);
+      });
 
       // /-----------------------------------------------------------
       // await runContinuousScan();
@@ -230,28 +240,6 @@ app.prepare().then(() => {
     }
   }
 
-  async function runContinuousScan() {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      try {
-        // First scan
-        logger.info("Starting first scan...");
-        await handleFirstScan(io);
-
-        // Second scan
-        logger.info("Starting second scan...");
-        await handleSecondScan(io);
-
-        logger.info("Scan cycle completed");
-      } catch (error) {
-        logger.error("Error during scan cycle:", error);
-      }
-
-      // Optional: Add a small delay between cycles if needed
-      // await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-
   async function writeModbusRegister(address, value) {
     await writeRegister(address, value);
   }
@@ -309,4 +297,17 @@ app.prepare().then(() => {
       logger.info(`No CSV file found for ${fileName}.`);
     }
   }
+});
+
+// Handle graceful shutdown
+process.on("SIGINT", async () => {
+  logger.info("Received SIGINT. Closing MongoDB connection and exiting...");
+  await mongoDbService.disconnect();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  logger.info("Received SIGTERM. Closing MongoDB connection and exiting...");
+  await mongoDbService.disconnect();
+  process.exit(0);
 });
