@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 // app/layout.js or app/layout.tsx
 import { Inter } from "next/font/google";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
@@ -21,17 +22,19 @@ export default function RootLayout({ children }) {
       <body className={inter.className}>
         <SocketProvider>
           <ToastProvider>
-            <ErrorToastHandler />
-            <div className="flex">
-              {/* Sidebar with a fixed width */}
-              <Sidebar />
+            <SessionProvider>
+              <ErrorToastHandler />
+              <div className="flex">
+                {/* Sidebar with a fixed width */}
+                <Sidebar />
 
-              {/* Main content area */}
-              <div className="flex-1 flex flex-col ml-64 bg-[#F3F4F6]">
-                <TopBar />
-                <main className="p-6 min-h-screen">{children}</main>
+                {/* Main content area */}
+                <div className="flex-1 flex flex-col ml-64 bg-[#F3F4F6]">
+                  <TopBar />
+                  <main className="p-6 min-h-screen">{children}</main>
+                </div>
               </div>
-            </div>
+            </SessionProvider>
           </ToastProvider>
         </SocketProvider>
       </body>

@@ -20,6 +20,7 @@ const Sidebar = () => {
     { name: "PLC", icon: <FaCogs />, href: "/plc" },
     { name: "Reports", icon: <FaTable />, href: "/ui-elements" },
     { name: "Advanced", icon: <FaBell />, href: "/advanced-ui" },
+    { name: "Marking Data", icon: <FaBell />, href: "/marking-data" },
     // { name: "Calendar", icon: <FaCalendar />, href: "/calendar" },
     // { name: "Settings", icon: <FaCogs />, href: "/settings" },
   ];
