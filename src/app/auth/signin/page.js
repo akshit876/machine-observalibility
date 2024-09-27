@@ -14,19 +14,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "react-toastify";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (isLogin) {
       // Handle sign in
@@ -37,8 +35,9 @@ export default function AuthPage() {
       });
 
       if (result.error) {
-        setError("Invalid credentials");
+        toast.error("Invalid credentials");
       } else {
+        toast.success("Signed in successfully");
         router.push("/");
         router.refresh();
       }
@@ -60,17 +59,18 @@ export default function AuthPage() {
           });
 
           if (result.error) {
-            setError("Registration successful, but unable to sign in");
+            toast.error("Registration successful, but unable to sign in");
           } else {
+            toast.success("Registered and signed in successfully");
             router.push("/");
             router.refresh();
           }
         } else {
           const data = await response.json();
-          setError(data.message || "Registration failed");
+          toast.error(data.message || "Registration failed");
         }
       } catch (error) {
-        setError("An error occurred during registration");
+        toast.error("An error occurred during registration");
       }
     }
   };
@@ -121,11 +121,6 @@ export default function AuthPage() {
                 />
               </div>
             </div>
-            {error && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
             <Button type="submit" className="w-full mt-4">
               {isLogin ? "Sign In" : "Register"}
             </Button>

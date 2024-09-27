@@ -165,10 +165,10 @@ app.prepare().then(() => {
       logger.info("Modbus connection initialized");
 
       // Make sure to call this function when your application starts
-      runContinuousScan(io).catch((error) => {
-        logger.error("Failed to start continuous scan:", error);
-        process.exit(1);
-      });
+      // runContinuousScan(io).catch((error) => {
+      //   logger.error("Failed to start continuous scan:", error);
+      //   process.exit(1);
+      // });
 
       // /-----------------------------------------------------------
       // await runContinuousScan();

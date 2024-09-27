@@ -21,6 +21,8 @@ const Sidebar = () => {
     { name: "Reports", icon: <FaTable />, href: "/ui-elements" },
     { name: "Advanced", icon: <FaBell />, href: "/advanced-ui" },
     { name: "Marking Data", icon: <FaBell />, href: "/marking-data" },
+    { name: "Servo Settings", icon: <FaBell />, href: "/servo-settings" },
+    { name: "Manual Mode", icon: <FaBell />, href: "/manual-mode" },
     // { name: "Calendar", icon: <FaCalendar />, href: "/calendar" },
     // { name: "Settings", icon: <FaCogs />, href: "/settings" },
   ];
