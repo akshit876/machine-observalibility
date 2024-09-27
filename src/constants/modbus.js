@@ -98,8 +98,8 @@ export const MANUAL_RUN_OPERATIONS = [
   { name: "Scanner Trigger", operation: "scannerTrigger" },
   { name: "OCR Trigger", operation: "ocrTrigger" },
   { name: "Work Light", operation: "workLight" },
-  { name: "Servo Home", operation: "servoHome" },
-  { name: "Servo Scanner Position", operation: "servoScannerPosition" },
-  { name: "Servo OCR Position", operation: "servoOcrPosition" },
-  { name: "Servo Marking Position", operation: "servoMarkingPosition" },
+  { name: "Home Position", operation: "servohomeposition" },
+  { name: "Servo Scanner Position", operation: "servoscannerposition" },
+  { name: "Servo OCR Position", operation: "servoocrposition" },
+  { name: "Servo Marking Position", operation: "servomarkposition" },
 ];

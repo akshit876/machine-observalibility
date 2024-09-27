@@ -14,10 +14,13 @@ const MANUAL_RUN_ADDRESSES = {
   scannerTrigger: { address: 1414, bit: 1 },
   ocrTrigger: { address: 1414, bit: 2 },
   workLight: { address: 1414, bit: 3 },
-  servoHome: { address: 1414, bit: 4 },
-  servoScannerPosition: { address: 1414, bit: 5 },
-  servoOcrPosition: { address: 1414, bit: 6 },
-  servoMarkingPosition: { address: 1414, bit: 7 },
+  servohomeposition: { address: 1414, bit: 4 },
+  servoscannerposition: { address: 1414, bit: 5 },
+  servoocrposition: { address: 1414, bit: 6 },
+  servomarkposition: { address: 1414, bit: 7 },
+  jogFwd: { address: 1415, bit: 8 },
+  jogRev: { address: 1415, bit: 9 },
+  servoHome: { address: 1415, bit: 10 },
 };
 
 export async function manualRun(operation, socket) {

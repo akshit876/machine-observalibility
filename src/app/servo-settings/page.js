@@ -14,39 +14,48 @@ const ServoSettings = () => {
     revEndLimit: "234.56",
   });
 
-  const [loading, setLoading] = useState({});
+  const [loading, setLoading] = useState({
+    servoHome: false,
+    jogFwd: false,
+    jogRev: false,
+    servohomeposition: false,
+    servoscannerposition: false,
+    servoocrposition: false,
+    servomarkposition: false,
+  });
   const inputRefs = useRef({}); // Create refs for input elements
   const socket = useSocket();
 
   useEffect(() => {
     if (socket) {
-      socket.on("servo-settings-update", (data) => {
-        setSettings((prevSettings) => ({ ...prevSettings, ...data }));
-      });
-      socket.on("servo-setting-change-response", (response) => {
-        setLoading((prev) => ({ ...prev, [response.key]: false }));
-        if (response.success) {
-          toast.success("Setting updated successfully!");
-        } else {
-          toast.error("Failed to update setting. Please try again.");
-        }
-      });
-      socket.on("manual-run-response", (response) => {
-        setLoading((prev) => ({ ...prev, [response.operation]: false }));
-        if (response.success) {
-          toast.success(
-            `Operation ${response.operation} completed successfully`
-          );
-        } else {
-          toast.error(`Failed to execute operation ${response.operation}`);
-        }
-      });
+      //   socket.on("servo-settings-update", (data) => {
+      //     setSettings((prevSettings) => ({ ...prevSettings, ...data }));
+      //   });
+      //   socket.on("servo-setting-change-response", (response) => {
+      //     setLoading((prev) => ({ ...prev, [response.key]: false }));
+      //     if (response.success) {
+      //       toast.success("Setting updated successfully!");
+      //     } else {
+      //       toast.error("Failed to update setting. Please try again.");
+      //     }
+      //   });
+      //   socket.on("manual-run-response", (response) => {
+      //     setLoading((prev) => ({ ...prev, [response.operation]: false }));
+      //     if (response.success) {
+      //       toast.success(
+      //         `Operation ${response.operation} completed successfully`
+      //       );
+      //     } else {
+      //       toast.error(`Failed to execute operation ${response.operation}`);
+      //     }
+      //   });
     }
     return () => {
       if (socket) {
         socket.off("servo-settings-update");
         socket.off("servo-setting-change-response");
         socket.off("manual-run-response");
+        socket.off("update-servo-settings");
       }
     };
   }, [socket]);
@@ -71,8 +80,9 @@ const ServoSettings = () => {
       }));
       if (socket) {
         setLoading((prev) => ({ ...prev, [key]: true }));
-        socket.emit("servo-setting-change", {
-          [key]: subKey ? { [subKey]: value } : value,
+        socket.emit("update-servo-settings", {
+          setting: key,
+          value: subKey ? { [subKey]: value } : value,
         });
       }
     } else {
@@ -131,13 +141,18 @@ const ServoSettings = () => {
     </div>
   );
 
-  const PositionButton = ({ label, register, color = "bg-purple-400" }) => (
+  const PositionButton = ({
+    label,
+    register,
+    operation,
+    color = "bg-purple-400",
+  }) => (
     <button
       className={`${color} text-black border border-green-500 rounded-md h-14 w-36 text-sm font-semibold hover:opacity-90 transition-opacity flex flex-col justify-center items-center relative`}
-      onClick={() => handleButtonClick(register)}
-      disabled={loading[register]}
+      onClick={() => handleButtonClick(operation)}
+      disabled={loading[operation]}
     >
-      {loading[register] ? (
+      {loading[operation] ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
         </div>
@@ -198,6 +213,7 @@ const ServoSettings = () => {
                 <PositionButton
                   label={`${position}\nPOSITION`}
                   register={`D1414.B${index + 4}`}
+                  operation={`servo${position.toLowerCase()}position`}
                 />
               </div>
             </div>
@@ -216,7 +232,11 @@ const ServoSettings = () => {
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown} // Pass key down handler
               />
-              <PositionButton label="JOG FWD" register="D1414.B8" />
+              <PositionButton
+                label="JOG FWD"
+                register="D1414.B8"
+                operation="jogFwd"
+              />
             </div>
           </div>
 
@@ -233,11 +253,16 @@ const ServoSettings = () => {
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown} // Pass key down handler
               />
-              <PositionButton label="JOG REV" register="D1414.B9" />
+              <PositionButton
+                label="JOG REV"
+                register="D1414.B9"
+                operation="jogRev"
+              />
               <PositionButton
                 label="SERVO HOME"
                 register="D1414.B10"
                 color="bg-red-400"
+                operation="servoHome"
               />
             </div>
           </div>

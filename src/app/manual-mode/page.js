@@ -1,4 +1,5 @@
 /* eslint-disable consistent-return */
+"use client";
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,22 +10,36 @@ const ManualMode = () => {
   const socket = useSocket();
 
   useEffect(() => {
-    if (socket) {
-      socket.on("button-state-update", (data) => {
-        setButtonStates((prevStates) => ({ ...prevStates, ...data }));
-      });
-    }
+    // if (socket) {
+    //   socket.on("button-state-update", (data) => {
+    //     setButtonStates((prevStates) => ({ ...prevStates, ...data }));
+    //   });
+    // }
 
     return () => {
       if (socket) {
-        socket.off("button-state-update");
+        socket.off("manual-run");
       }
     };
   }, [socket]);
 
   const handleButtonClick = (buttonId) => {
     if (socket) {
-      socket.emit("button-click", { buttonId });
+      const operations = {
+        "D1414.B0": "markingStart",
+        "D1414.B1": "scannerTrigger",
+        "D1414.B2": "ocrTrigger",
+        "D1414.B3": "workLight",
+        "D1414.B4": "servoHomeposition",
+        "D1414.B5": "servoscannerposition",
+        "D1414.B6": "servoocrposition",
+        "D1414.B7": "servomarkposition",
+        "D1414.B8": "jogFwd",
+        "D1414.B9": "jogRev",
+      };
+
+      const operation = operations[buttonId] || buttonId; // Get the operation based on buttonId
+      socket.emit("manual-run", operation);
     }
 
     // For JOG FWD and JOG REV, we'll simulate the "on till pressing" behavior

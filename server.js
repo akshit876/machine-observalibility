@@ -47,6 +47,10 @@ function emitErrorEvent(socket, errorType, errorMessage) {
   logger.error(`${errorType}: ${errorMessage}`);
 }
 
+function floatToInt(value) {
+  return Math.round(parseFloat(value) * 100);
+}
+
 app.prepare().then(() => {
   const server = createServer((req, res) => {
     morgan("combined", {
@@ -142,6 +146,63 @@ app.prepare().then(() => {
         socket.emit("error", {
           message: "Failed to execute manual run",
           details: error.message,
+        });
+      }
+    });
+
+    socket.on("servo-setting-change", async (data) => {
+      try {
+        for (const [key, value] of Object.entries(data)) {
+          let register;
+          let intValue;
+
+          switch (key) {
+            case "homePosition":
+              register = value.position ? 550 : 560;
+              intValue = floatToInt(value.position || value.speed);
+              break;
+            case "scannerPosition":
+              register = value.position ? 552 : 562;
+              intValue = floatToInt(value.position || value.speed);
+              break;
+            case "ocrPosition":
+              register = value.position ? 554 : 564;
+              intValue = floatToInt(value.position || value.speed);
+              break;
+            case "markPosition":
+              register = value.position ? 556 : 566;
+              intValue = floatToInt(value.position || value.speed);
+              break;
+            case "fwdEndLimit":
+              register = 574;
+              intValue = floatToInt(value);
+              break;
+            case "revEndLimit":
+              register = 578;
+              intValue = floatToInt(value);
+              break;
+            default:
+              throw new Error("Invalid setting");
+          }
+
+          await writeRegister(register, intValue);
+          logger.info(
+            `Client ${socket.id} updated ${key} to ${JSON.stringify(value)} (written as ${intValue})`
+          );
+        }
+        socket.emit("servo-setting-change-response", {
+          success: true,
+          key: Object.keys(data)[0],
+        });
+      } catch (error) {
+        logger.error(
+          `Error updating servo setting for client ${socket.id}:`,
+          error
+        );
+        socket.emit("servo-setting-change-response", {
+          success: false,
+          key: Object.keys(data)[0],
+          message: error.message,
         });
       }
     });
