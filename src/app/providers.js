@@ -8,7 +8,9 @@ export function Providers({ children }) {
   return (
     <SocketProvider>
       <ToastProvider>
-        <SessionProvider>{children}</SessionProvider>
+        {/* <SessionProvider> */}
+        {children}
+        {/* </SessionProvider> */}
       </ToastProvider>
     </SocketProvider>
   );

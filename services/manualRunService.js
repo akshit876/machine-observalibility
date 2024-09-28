@@ -18,9 +18,9 @@ const MANUAL_RUN_ADDRESSES = {
   servoscannerposition: { address: 1414, bit: 5 },
   servoocrposition: { address: 1414, bit: 6 },
   servomarkposition: { address: 1414, bit: 7 },
-  jogFwd: { address: 1415, bit: 8 },
-  jogRev: { address: 1415, bit: 9 },
-  servoHome: { address: 1415, bit: 10 },
+  jogFwd: { address: 1414, bit: 8 },
+  jogRev: { address: 1414, bit: 9 },
+  servoHome: { address: 1414, bit: 10 },
 };
 
 export async function manualRun(operation, socket) {

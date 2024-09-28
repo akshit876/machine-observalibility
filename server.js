@@ -47,9 +47,22 @@ function emitErrorEvent(socket, errorType, errorMessage) {
   logger.error(`${errorType}: ${errorMessage}`);
 }
 
-function floatToInt(value) {
-  return Math.round(parseFloat(value) * 100);
+// function floatToInt(value) {
+//   return Math.round(parseFloat(value) * 100);
+// }
+function floatToInt(value, isSpeed = false) {
+  if (isSpeed) {
+    // For speed, just convert to integer directly
+    return Math.round(parseFloat(value));
+  } else {
+    // For position, remove decimal and concatenate
+    return Math.round(parseFloat(value) * 100);
+  }
 }
+// function floatToInt(value) {
+//   // Remove the decimal point, concatenate all digits, and convert to integer
+//   return parseInt(value.toString().replace(".", ""), 10);
+// }
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
@@ -152,47 +165,67 @@ app.prepare().then(() => {
 
     socket.on("servo-setting-change", async (data) => {
       try {
-        for (const [key, value] of Object.entries(data)) {
-          let register;
-          let intValue;
+        const { setting, value } = data;
+        let register;
+        let intValue;
 
-          switch (key) {
-            case "homePosition":
-              register = value.position ? 550 : 560;
-              intValue = floatToInt(value.position || value.speed);
-              break;
-            case "scannerPosition":
-              register = value.position ? 552 : 562;
-              intValue = floatToInt(value.position || value.speed);
-              break;
-            case "ocrPosition":
-              register = value.position ? 554 : 564;
-              intValue = floatToInt(value.position || value.speed);
-              break;
-            case "markPosition":
-              register = value.position ? 556 : 566;
-              intValue = floatToInt(value.position || value.speed);
-              break;
-            case "fwdEndLimit":
-              register = 574;
-              intValue = floatToInt(value);
-              break;
-            case "revEndLimit":
-              register = 578;
-              intValue = floatToInt(value);
-              break;
-            default:
-              throw new Error("Invalid setting");
-          }
-
-          await writeRegister(register, intValue);
-          logger.info(
-            `Client ${socket.id} updated ${key} to ${JSON.stringify(value)} (written as ${intValue})`
-          );
+        switch (setting) {
+          case "homePosition":
+            if (value.position !== undefined) {
+              register = 550;
+              intValue = floatToInt(value.position);
+            } else {
+              register = 560;
+              intValue = floatToInt(value.speed, true);
+            }
+            break;
+          case "scannerPosition":
+            if (value.position !== undefined) {
+              register = 552;
+              intValue = floatToInt(value.position);
+            } else {
+              register = 562;
+              intValue = floatToInt(value.speed, true);
+            }
+            break;
+          case "ocrPosition":
+            if (value.position !== undefined) {
+              register = 554;
+              intValue = floatToInt(value.position);
+            } else {
+              register = 564;
+              intValue = floatToInt(value.speed, true);
+            }
+            break;
+          case "markPosition":
+            if (value.position !== undefined) {
+              register = 556;
+              intValue = floatToInt(value.position);
+            } else {
+              register = 566;
+              intValue = floatToInt(value.speed, true);
+            }
+            break;
+          case "fwdEndLimit":
+            register = 574;
+            intValue = floatToInt(value.position);
+            break;
+          case "revEndLimit":
+            register = 578;
+            intValue = floatToInt(value.position);
+            break;
+          default:
+            throw new Error("Invalid setting");
         }
+
+        await writeRegister(register, intValue);
+        logger.info(
+          `Client ${socket.id} updated ${setting} to ${JSON.stringify(value)} (written as ${intValue})`
+        );
+
         socket.emit("servo-setting-change-response", {
           success: true,
-          key: Object.keys(data)[0],
+          setting: setting,
         });
       } catch (error) {
         logger.error(
@@ -201,7 +234,7 @@ app.prepare().then(() => {
         );
         socket.emit("servo-setting-change-response", {
           success: false,
-          key: Object.keys(data)[0],
+          setting: data.setting,
           message: error.message,
         });
       }

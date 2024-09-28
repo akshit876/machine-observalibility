@@ -55,7 +55,7 @@ const ServoSettings = () => {
         socket.off("servo-settings-update");
         socket.off("servo-setting-change-response");
         socket.off("manual-run-response");
-        socket.off("update-servo-settings");
+        socket.off("servo-setting-change");
       }
     };
   }, [socket]);
@@ -80,7 +80,11 @@ const ServoSettings = () => {
       }));
       if (socket) {
         setLoading((prev) => ({ ...prev, [key]: true }));
-        socket.emit("update-servo-settings", {
+        console.log({
+          setting: key,
+          value: subKey ? { [subKey]: value } : value,
+        });
+        socket.emit("servo-setting-change", {
           setting: key,
           value: subKey ? { [subKey]: value } : value,
         });
@@ -104,6 +108,9 @@ const ServoSettings = () => {
     if (socket) {
       setLoading((prev) => ({ ...prev, [operation]: true }));
       socket.emit("manual-run", operation);
+      setTimeout(() => {
+        setLoading((prev) => ({ ...prev, [operation]: false }));
+      }, 200);
     }
   };
 
