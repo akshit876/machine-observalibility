@@ -225,7 +225,7 @@ app.prepare().then(() => {
 
         socket.emit("servo-setting-change-response", {
           success: true,
-          setting: setting,
+          setting,
         });
       } catch (error) {
         logger.error(
