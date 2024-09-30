@@ -13,7 +13,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export function DatePicker({ value, onChange, placeholder }) {
+export function DatePicker({ selected, onSelect, placeholder }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -21,18 +21,23 @@ export function DatePicker({ value, onChange, placeholder }) {
           variant={"outline"}
           className={cn(
             "w-[240px] justify-start text-left font-normal",
-            !value && "text-muted-foreground"
+            !selected && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>{placeholder}</span>}
+          {selected ? format(selected, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={value}
-          onSelect={onChange}
+          selected={selected}
+          onSelect={(date) => {
+            console.log(date);
+            if (date) {
+              onSelect(date); // Call the onSelect function with the selected date
+            }
+          }}
           initialFocus
         />
       </PopoverContent>
