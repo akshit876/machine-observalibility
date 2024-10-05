@@ -13,9 +13,15 @@ class ComPortService {
     };
     this.port = new SerialPort(this.options);
     this.parser = this.port.pipe(new ReadlineParser({ delimiter: "\r" }));
+    this.isOpen = false;
   }
 
   async initSerialPort() {
+    if (this.isOpen) {
+      console.log("Port is already open");
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       this.port.open((err) => {
         if (err) {
@@ -23,6 +29,7 @@ class ComPortService {
           reject(err);
         } else {
           console.log("Port opened successfully");
+          this.isOpen = true;
           resolve();
         }
       });
@@ -30,6 +37,12 @@ class ComPortService {
   }
 
   async sendData(data) {
+    if (!this.isOpen) {
+      return Promise.reject(
+        new Error("Port is not open. Call initSerialPort first.")
+      );
+    }
+
     return new Promise((resolve, reject) => {
       this.port.write(data, (err) => {
         if (err) {
@@ -42,6 +55,12 @@ class ComPortService {
   }
 
   async readData(timeout = 10000) {
+    if (!this.isOpen) {
+      return Promise.reject(
+        new Error("Port is not open. Call initSerialPort first.")
+      );
+    }
+
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error("Timeout waiting for scanner data"));
@@ -55,16 +74,26 @@ class ComPortService {
   }
 
   async closePort() {
+    if (!this.isOpen) {
+      console.log("Port is already closed");
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       this.port.close((err) => {
         if (err) {
           reject(`Error closing port: ${err.message}`);
         } else {
           console.log("Port closed successfully");
+          this.isOpen = false;
           resolve();
         }
       });
     });
+  }
+
+  isPortOpen() {
+    return this.isOpen;
   }
 }
 
