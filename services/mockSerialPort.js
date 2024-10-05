@@ -29,3 +29,4 @@ export class MockSerialPort extends SerialPort {
     this.emit("open");
   }
 }
+// /demo
