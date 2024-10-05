@@ -208,11 +208,11 @@ export async function runContinuousScan(io = null) {
   }
 }
 
-// Make sure to call this function when your application starts
-runContinuousScan().catch((error) => {
-  logger.error("Failed to start continuous scan:", error);
-  process.exit(1);
-});
+// code to test servce
+// runContinuousScan().catch((error) => {
+//   logger.error("Failed to start continuous scan:", error);
+//   process.exit(1);
+// });
 
 // Handle graceful shutdown
 process.on("SIGINT", async () => {
