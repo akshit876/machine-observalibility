@@ -2,6 +2,7 @@ import {
   readRegister,
   readRegisterAndProvideASCII,
   writeBit,
+  connect
 } from "./modbus.js";
 import logger from "../logger.js";
 import { emitErrorEvent } from "./utils.js";
@@ -62,6 +63,7 @@ export async function manualRun(operation, socket) {
 
 async function runTest() {
   try {
+    await connect();
     // await writeBit(1414, 14, 0);
     // await writeBit(1414, 15, 0);
     // await writeBit(1414, 13, 0);
@@ -71,7 +73,7 @@ async function runTest() {
     // await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
     // await writeBit(1415, 2, 0); //rest
     // await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
-    // await readRegister(1450, 20);
+    await readRegister(1450, 20);
     // await readRegisterAndProvideASCII(1450, 3); //date
     // await readRegisterAndProvideASCII(1453, 1); //shift
     // await readRegisterAndProvideASCII(1454, 2); //die
@@ -83,4 +85,4 @@ async function runTest() {
     // logger.error(errorMessage);
   }
 }
-// runTest();
+runTest();

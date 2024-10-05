@@ -18,11 +18,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SHIFTS = ["A", "B", "C"];
-let currentShiftIndex = 0;
+const currentShiftIndex = 0;
 // let serialNumber = 1;
-let lastResetDate = new Date();
+const lastResetDate = new Date();
 import { format, parse, isAfter, setHours, setMinutes } from "date-fns";
 import mongoDbService from "./mongoDbService.js";
+import ComPortService from "./ComPortService.js";
+
+
+const comPort = new ComPortService();
 
 // let cycleCompleted = false;
 
@@ -232,156 +236,215 @@ async function generateCodeData(serialNumber) {
     finalString,
   };
 }
-let c = 0;
+const c = 0;
 export async function runContinuousScan(io = null) {
   // eslint-disable-next-line no-constant-condition
+
   while (true) {
+    // try {
+    //   // connect();
+    //   await mongoDbService.connect("main-data", "records");
+    //   // await initializeSerialNumber();
+    //   await SerialNumberGen.initialize("main-data", "records");
+
+    //   // Set a custom reset time if needed (optional)
+    //   SerialNumberGen.setResetTime(6, 0);
+
+    //   const serialNumber = SerialNumberGen.getNextSerialNumber();
+
+    //   console.log({ c });
+    //   //   await writeBitsWithRest(1415, 2, 0);
+    //   //   await writeBitsWithRest(1415, 2, 1);
+    //   if (c > 0) await waitForBitToBecomeOne(1415, 7);
+    //   await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    //   await writeBitsWithRest(1415, 9, 1, 2000);
+    //   // **Cycle Start**: Wait until bit 0 of register 1400 is 1
+    //   await waitForBitToBecomeOne(1400, 0);
+    //   logger.info("Bit 0 of register 1400 is now 1, proceeding with scan.");
+
+    //   // **Read data from scanner 1470 (20 bits)**
+    //   const scannerData = await readRegisterAndProvideASCII(1470, 20);
+    //   //   const scannerDataString = String.fromCharCode(...scannerData);
+    //   logger.info(`Scanner data from register 1470: ${scannerData}`);
+    //   console.log({ scannerData, l: scannerData.length });
+    //   //   return;
+
+    //   // **Check if scanner data is valid**
+    //   if (scannerData !== "NG") {
+    //     // **Write to PLC 1414, bit 13 to stop the machine from proceeding**
+    //     await writeBitsWithRest(1414, 13, 1);
+    //     logger.info("Machine stopped from proceeding, scanner data is OK.");
+    //   } else {
+    //     // **Write to PLC 1414, bit 14 to notify NG condition**
+    //     await writeBitsWithRest(1414, 14, 1);
+    //     logger.info("Scanner data is NG, notifying PLC.");
+    //   }
+
+    //   // **OCR Read**: Wait until bit 1 of register 1410 is 1
+    //   await waitForBitToBecomeOne(1410, 1);
+
+    //   // **Read OCR data from register 1450 (20 bits)**
+    //   const ocrData = await readRegisterAndProvideASCII(1450, 20);
+    //   //   const ocrDataString = String.fromCharCode(...ocrData);
+    //   logger.info(`OCR data from register 1450: ${ocrData}`);
+
+    //   // **Write to PLC that OCR read is done for the first time (1414, bit 15)**
+    //   await writeBitsWithRest(1414, 15, 1);
+    //   logger.info("OCR read completed for the first time, updated PLC.");
+
+    //   // **Directly send OCR data into code.txt**
+    //   await writeOCRDataToFile(ocrData);
+    //   //   await clearCodeFile("code.txt");
+    //   //   fs.writeFileSync(path.join(__dirname, "../data/code.txt"), finalCode);
+    //   await writeTextDataToFile(serialNumber);
+    //   const { vendorCode, die, partNo, date, shift } =
+    //     await writeCodeDataToFile(serialNumber);
+
+    //   // **Wait until bit 2 of register 1410 is 1 to send data to laser**
+    //   await waitForBitToBecomeOne(1410, 2);
+    //   logger.info(
+    //     "Bit 2 of register 1410 is now 1, proceeding to send data to laser."
+    //   );
+
+    //   // **Send data to laser from code.txt**
+    //   //   await sendDataToLaserFromCodeFile();
+    //   logger.info("Sent data to laser as per command.");
+
+    //   // **Write confirmation to PLC (1415, bit 1)**
+    //   await writeBitsWithRest(1415, 1, 1);
+    //   logger.info("Confirmation written to PLC for laser data transmission.");
+
+    //   // **3rd Cycle Scanning**
+    //   logger.info("Starting 3rd cycle scanning...");
+
+    //   // **Wait until bit 3 of register 1410 is 1 to begin reading data from scanner**
+    //   await waitForBitToBecomeOne(1410, 3);
+    //   logger.info(
+    //     "Bit 3 of register 1410 is now 1, proceeding with 3rd cycle scanner read."
+    //   );
+
+    //   // **Read scanner data 1470 (20 bits)**
+    //   const scannerData3rdCycle = await readRegisterAndProvideASCII(1470, 20);
+    //   //   const scannerData3rdCycleString = String.fromCharCode(
+    //   //     ...scannerData3rdCycle
+    //   //   );
+    //   logger.info(
+    //     `Scanner data for 3rd cycle from register 1470: ${scannerData3rdCycle}`
+    //   );
+
+    //   //   **Compare scanner data with code.txt**
+    //   const isDataMatching =
+    //     await compareScannerDataWithCode(scannerData3rdCycle);
+
+    //   // **Grading Check After Comparison**
+    //   const isGradingValid = await checkGrading(scannerData3rdCycle);
+
+    //   logger.info(`Grading Result: ${isGradingValid}`);
+
+    //   // **Write to PLC based on matching result**
+    //   // if (isDataMatching && isGradingValid) {
+    //   if (true) {
+    //     // Save results to CSV
+    //     await saveToMongoDB(
+    //       io, // chnage this io in server.js
+    //       serialNumber,
+    //       scannerData3rdCycle,
+    //       ocrData,
+    //       scannerData3rdCycle.slice(-1).toUpperCase(),
+    //       isDataMatching && isGradingValid ? "OK" : "NG",
+    //       shift,
+    //       vendorCode,
+    //       die,
+    //       partNo,
+    //       date
+    //     );
+    //     await writeBitsWithRest(1414, 11, 1, 2000); // **OK -> Write to PLC**
+    //     logger.info("Scanner data matches code.txt, OK signal written to PLC.");
+    //   } else {
+    //     await saveToMongoDB(
+    //       io, // chnage this io in server.js
+    //       serialNumber,
+    //       scannerData3rdCycle,
+    //       ocrData,
+    //       scannerData3rdCycle.slice(-1).toUpperCase(),
+    //       isDataMatching && isGradingValid ? "OK" : "NG",
+    //       shift,
+    //       vendorCode,
+    //       die,
+    //       partNo,
+    //       date
+    //     );
+    //     await writeBitsWithRest(1414, 12, 1); // **NG -> Write to PLC**
+    //     logger.info(
+    //       "Scanner data does not match code.txt, NG signal written to PLC."
+    //     );
+    //   }
+
+    //   logger.info("3rd cycle scanning completed");
+
+    //   // Optional: Add a small delay between cycles if needed
+    //   await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+    //   c++;
+    // } catch (error) {
+    //   logger.error("Error during scan cycle:", error);
+    // }
     try {
-      // connect();
-      await mongoDbService.connect("main-data", "records");
-      // await initializeSerialNumber();
-      await SerialNumberGen.initialize("main-data", "records");
+      await comPort.initSerialPort();
+      logger.info("Starting scanner workflow");
 
-      // Set a custom reset time if needed (optional)
-      SerialNumberGen.setResetTime(6, 0);
+      // 1. Start
+      await waitForBitToBecomeOne(1410, 0, 1);
 
-      const serialNumber = SerialNumberGen.getNextSerialNumber();
+      // 2-3. Read scanner data from s/w
+      const scannerData = await comPort.readData();
+      logger.info(`Scanner data: ${scannerData}`);
 
-      console.log({ c });
-      //   await writeBitsWithRest(1415, 2, 0);
-      //   await writeBitsWithRest(1415, 2, 1);
-      if (c > 0) await waitForBitToBecomeOne(1415, 7);
-      await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
-      await writeBitsWithRest(1415, 9, 1, 2000);
-      // **Cycle Start**: Wait until bit 0 of register 1400 is 1
-      await waitForBitToBecomeOne(1400, 0);
-      logger.info("Bit 0 of register 1400 is now 1, proceeding with scan.");
-
-      // **Read data from scanner 1470 (20 bits)**
-      const scannerData = await readRegisterAndProvideASCII(1470, 20);
-      //   const scannerDataString = String.fromCharCode(...scannerData);
-      logger.info(`Scanner data from register 1470: ${scannerData}`);
-      console.log({ scannerData, l: scannerData.length });
-      //   return;
-
-      // **Check if scanner data is valid**
+      // 4-5. Check if data is OK or NG
       if (scannerData !== "NG") {
-        // **Write to PLC 1414, bit 13 to stop the machine from proceeding**
-        await writeBitsWithRest(1414, 13, 1);
-        logger.info("Machine stopped from proceeding, scanner data is OK.");
+        await writeBitsWithRest(1414, 12, 1); // Signal NG to PLC
+        logger.info("Scanner data is found, stopping machine");
+        return; // Exit the function if NG
       } else {
-        // **Write to PLC 1414, bit 14 to notify NG condition**
-        await writeBitsWithRest(1414, 14, 1);
-        logger.info("Scanner data is NG, notifying PLC.");
+        // await writeOCRDataToFile(scannerData);
+        logger.info("Scanner data is NG, transferred to text file");
       }
 
-      // **OCR Read**: Wait until bit 1 of register 1410 is 1
-      await waitForBitToBecomeOne(1410, 1);
+      // 6. File transferred confirmation bit to be sent to PLC
+      await writeBitsWithRest(1414, 0, 1);
+      logger.info("File transfer confirmation sent to PLC");
 
-      // **Read OCR data from register 1450 (20 bits)**
-      const ocrData = await readRegisterAndProvideASCII(1450, 20);
-      //   const ocrDataString = String.fromCharCode(...ocrData);
-      logger.info(`OCR data from register 1450: ${ocrData}`);
+      // 7. Get signal from PLC at 1414.2
+      await waitForBitToBecomeOne(1414, 2, 1);
+      logger.info("Received signal from PLC at 1414.2");
 
-      // **Write to PLC that OCR read is done for the first time (1414, bit 15)**
-      await writeBitsWithRest(1414, 15, 1);
-      logger.info("OCR read completed for the first time, updated PLC.");
+      // 8. Trigger scanner on bit now to PLC
+      await writeBitsWithRest(1414, 3, 1);
+      logger.info("Triggered scanner bit to PLC");
 
-      // **Directly send OCR data into code.txt**
-      await writeOCRDataToFile(ocrData);
-      //   await clearCodeFile("code.txt");
-      //   fs.writeFileSync(path.join(__dirname, "../data/code.txt"), finalCode);
-      await writeTextDataToFile(serialNumber);
-      const { vendorCode, die, partNo, date, shift } =
-        await writeCodeDataToFile(serialNumber);
+      // 9. Read scanner data now
+      const secondScannerData = await comPort.readData();
+      logger.info(`Second scanner data: ${secondScannerData}`);
 
-      // **Wait until bit 2 of register 1410 is 1 to send data to laser**
-      await waitForBitToBecomeOne(1410, 2);
-      logger.info(
-        "Bit 2 of register 1410 is now 1, proceeding to send data to laser."
-      );
-
-      // **Send data to laser from code.txt**
-      //   await sendDataToLaserFromCodeFile();
-      logger.info("Sent data to laser as per command.");
-
-      // **Write confirmation to PLC (1415, bit 1)**
-      await writeBitsWithRest(1415, 1, 1);
-      logger.info("Confirmation written to PLC for laser data transmission.");
-
-      // **3rd Cycle Scanning**
-      logger.info("Starting 3rd cycle scanning...");
-
-      // **Wait until bit 3 of register 1410 is 1 to begin reading data from scanner**
-      await waitForBitToBecomeOne(1410, 3);
-      logger.info(
-        "Bit 3 of register 1410 is now 1, proceeding with 3rd cycle scanner read."
-      );
-
-      // **Read scanner data 1470 (20 bits)**
-      const scannerData3rdCycle = await readRegisterAndProvideASCII(1470, 20);
-      //   const scannerData3rdCycleString = String.fromCharCode(
-      //     ...scannerData3rdCycle
-      //   );
-      logger.info(
-        `Scanner data for 3rd cycle from register 1470: ${scannerData3rdCycle}`
-      );
-
-      //   **Compare scanner data with code.txt**
+      // 10. Compare scanner results
       const isDataMatching =
-        await compareScannerDataWithCode(scannerData3rdCycle);
+        await compareScannerDataWithCode(secondScannerData);
 
-      // **Grading Check After Comparison**
-      const isGradingValid = await checkGrading(scannerData3rdCycle);
-
-      logger.info(`Grading Result: ${isGradingValid}`);
-
-      // **Write to PLC based on matching result**
-      // if (isDataMatching && isGradingValid) {
-      if (true) {
-        // Save results to CSV
-        await saveToMongoDB(
-          io, // chnage this io in server.js
-          serialNumber,
-          scannerData3rdCycle,
-          ocrData,
-          scannerData3rdCycle.slice(-1).toUpperCase(),
-          isDataMatching && isGradingValid ? "OK" : "NG",
-          shift,
-          vendorCode,
-          die,
-          partNo,
-          date
-        );
-        await writeBitsWithRest(1414, 11, 1, 2000); // **OK -> Write to PLC**
-        logger.info("Scanner data matches code.txt, OK signal written to PLC.");
+      // 11. Final give ok nok to PLC
+      if (isDataMatching) {
+        await writeBitsWithRest(1414, 11, 1); // OK signal
+        logger.info("Scanner data matches, sent OK signal to PLC");
       } else {
-        await saveToMongoDB(
-          io, // chnage this io in server.js
-          serialNumber,
-          scannerData3rdCycle,
-          ocrData,
-          scannerData3rdCycle.slice(-1).toUpperCase(),
-          isDataMatching && isGradingValid ? "OK" : "NG",
-          shift,
-          vendorCode,
-          die,
-          partNo,
-          date
-        );
-        await writeBitsWithRest(1414, 12, 1); // **NG -> Write to PLC**
-        logger.info(
-          "Scanner data does not match code.txt, NG signal written to PLC."
-        );
+        await writeBitsWithRest(1414, 12, 1); // NG signal
+        logger.info("Scanner data does not match, sent NG signal to PLC");
       }
 
-      logger.info("3rd cycle scanning completed");
-
-      // Optional: Add a small delay between cycles if needed
-      await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
-      c++;
+      logger.info("Scanner workflow completed");
     } catch (error) {
-      logger.error("Error during scan cycle:", error);
+      logger.error("Error in scanner workflow:", error);
+      // Implement error handling, possibly signaling an error to the PLC
+      await writeBitsWithRest(1414, 12, 1); // NG signal in case of error
+    } finally {
+      await comPort.closePort();
     }
   }
 }
@@ -417,10 +480,10 @@ async function writeCodeDataToFile(serialNumber) {
   }
 }
 // Make sure to call this function when your application starts
-// runContinuousScan().catch((error) => {
-//   logger.error("Failed to start continuous scan:", error);
-//   process.exit(1);
-// });
+runContinuousScan().catch((error) => {
+  logger.error("Failed to start continuous scan:", error);
+  process.exit(1);
+});
 
 // Handle graceful shutdown
 process.on("SIGINT", async () => {
