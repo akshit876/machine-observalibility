@@ -1,60 +1,20 @@
 import { fileURLToPath } from "url";
 import logger from "../logger.js";
-import {
-  connect,
-  readRegisterAndProvideASCII,
-  writeBitsWithRest,
-  //   writeBitsWithRestsWithRest,
-} from "./modbus.js";
+import { writeBitsWithRest } from "./modbus.js";
 import { waitForBitToBecomeOne } from "./serialPortService.js";
 
-import SerialNumberGen from "./serialNumber.js";
+import { format } from "date-fns";
 import fs from "fs";
 import path, { dirname } from "path";
-import { getData } from "./lowDbService.js";
-// import { saveToCSVNew } from "./scanUtils.js";
+import ComPortService from "./ComPortService.js";
+import ShiftUtility from "./ShiftUtility.js";
+import BarcodeGenerator from "./barcodeGenrator.js";
+import mongoDbService from "./mongoDbService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SHIFTS = ["A", "B", "C"];
-const currentShiftIndex = 0;
-// let serialNumber = 1;
-const lastResetDate = new Date();
-import { format, parse, isAfter, setHours, setMinutes } from "date-fns";
-import mongoDbService from "./mongoDbService.js";
-import ComPortService from "./ComPortService.js";
-import ShiftUtility from "./ShiftUtility.js";
-import BarcodeGenerator from "./barcodeGenrator.js";
-
 const comPort = new ComPortService();
-
-// let cycleCompleted = false;
-
-// // User-defined reset time (e.g., 6:00 AM)
-// const RESET_HOUR = 6;
-// const RESET_MINUTE = 0;
-
-// function getCurrentShift() {
-//   const now = new Date();
-//   const currentHour = now.getHours();
-
-//   if (currentHour >= 6 && currentHour < 14.5) return "A";
-//   if (currentHour >= 14.5 && currentHour < 23) return "B";
-//   return "C";
-// }
-
-// function generateNewOCRData(originalOCRData) {
-//   const date = format(new Date(), "yyMMdd");
-//   const { shift, serialNumber } = getNextSerialNumber();
-//   const remainingData = originalOCRData.slice(10); // Assuming the first 10 characters are date and serial
-
-//   return {
-//     ocrData: `${date}${serialNumber}${remainingData}`,
-//     shift,
-//     serialNumber,
-//   };
-// }
 
 async function saveToMongoDB(io, serialNumber, scannerData) {
   const now = new Date();
@@ -71,9 +31,6 @@ async function saveToMongoDB(io, serialNumber, scannerData) {
     await mongoDbService.insertRecord(data);
     logger.info(`Data saved to MongoDB`);
 
-    // Save to shift-specific CSV (daily file)
-    // await saveToShiftCSV(data);
-
     if (io) {
       mongoDbService.sendMongoDbDataToClient(io, "main-data", "records");
     }
@@ -84,7 +41,7 @@ async function saveToMongoDB(io, serialNumber, scannerData) {
 }
 
 const CODE_FILE_PATH = path.join(__dirname, "../data/code.txt");
-const TEXT_FILE_PATH = path.join(__dirname, "../data/text.txt");
+
 async function writeOCRDataToFile(ocrDataString) {
   try {
     await clearCodeFile(CODE_FILE_PATH); // Clear the file before writing new data
