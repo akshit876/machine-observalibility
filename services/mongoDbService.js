@@ -124,6 +124,7 @@ class MongoDBService {
       const data = await this.collection
         .find({})
         .sort({ Timestamp: -1 })
+        .limit(100)
         .toArray();
 
       if (data.length === 0) {
