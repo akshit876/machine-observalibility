@@ -24,6 +24,7 @@ import {
 import { manualRun } from "./services/manualRunService.js";
 import mongoDbService from "./services/mongoDbService.js";
 import { runContinuousScan } from "./services/testCycle.js";
+import cronService from "./services/cronService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -257,6 +258,14 @@ app.prepare().then(() => {
     try {
       await connect();
       logger.info("Modbus connection initialized");
+
+      cronService.scheduleJob(
+        "monthlyExport",
+        "1 0 1 * *",
+        cronService.generateMonthlyCsv.bind(cronService)
+      );
+
+      cronService.startAllJobs();
 
       // Make sure to call this function when your application starts
       // runContinuousScan(io).catch((error) => {
