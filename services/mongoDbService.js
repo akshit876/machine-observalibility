@@ -136,14 +136,10 @@ class MongoDBService {
       const transformedData = data.map((item) => ({
         Timestamp: item.Timestamp,
         SerialNumber: item.SerialNumber,
+        MarkingData: item.MarkingData,
         ScannerData: item.ScannerData,
-        OCRData: item.OCRData,
-        Grade: item.Grade,
-        Status: item.Status,
         Shift: item.Shift,
-        VendorCode: item.VendorCode,
-        Die: item.Die,
-        PartNo: item.PartNo,
+        Result: item.Result,
         Date: item.Date,
       }));
 

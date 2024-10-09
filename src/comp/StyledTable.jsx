@@ -14,15 +14,19 @@ const StyledTable = ({ data }) => {
     return <p>No data available</p>;
   }
 
+  console.log({ data });
+
   // Define the headers for the table
   const headers = [
-    { key: "Timestamp", label: "Timestamp" },
     { key: "SerialNumber", label: "Serial Number" },
+    { key: "MarkingData", label: "Marking Data" },
     { key: "ScannerData", label: "Scanner Data" },
-    { key: "OCRData", label: "OCR Data" },
-    { key: "Grade", label: "Grade" },
-    { key: "Status", label: "Status" },
-    { key: "Shift", label: "Shift" },
+    // { key: "Shift", label: "Shift" },
+    { key: "Result", label: "Result" },
+    { key: "Timestamp", label: "Timestamp" },
+    // { key: "OCRData", label: "OCR Data" },
+    // { key: "Grade", label: "Grade" },
+    // { key: "Status", label: "Status" },
   ];
 
   return (

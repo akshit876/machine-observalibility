@@ -17,7 +17,13 @@ const __dirname = dirname(__filename);
 
 const comPort = new ComPortService();
 
-async function saveToMongoDB(io, serialNumber, markingData, scannerData) {
+async function saveToMongoDB({
+  io,
+  serialNumber,
+  markingData,
+  scannerData,
+  result,
+}) {
   const now = new Date();
   const timestamp = format(now, "yyyy-MM-dd HH:mm:ss");
 
@@ -26,6 +32,7 @@ async function saveToMongoDB(io, serialNumber, markingData, scannerData) {
     SerialNumber: serialNumber,
     MarkingData: markingData,
     ScannerData: scannerData,
+    Result: result ? "OK" : "NG",
   };
 
   try {
@@ -189,7 +196,13 @@ export async function runContinuousScan(io = null) {
           await writeBitsWithRest(1414, 4, 1); // NG signal
           logger.info("Scanner data does not match, sent NG signal to PLC");
         }
-        await saveToMongoDB(io, serialNo, text, secondScannerData);
+        await saveToMongoDB({
+          io,
+          serialNumber: serialNo,
+          markingData: text,
+          scannerData: secondScannerData,
+          result: isDataMatching,
+        });
         logger.info("Scanner workflow completed");
 
         // Optional: Add a small delay between cycles if needed
@@ -216,10 +229,10 @@ export async function runContinuousScan(io = null) {
 }
 
 // code to test servce
-runContinuousScan().catch((error) => {
-  logger.error("Failed to start continuous scan:", error);
-  process.exit(1);
-});
+// runContinuousScan().catch((error) => {
+//   logger.error("Failed to start continuous scan:", error);
+//   process.exit(1);
+// });
 
 // Handle graceful shutdown
 process.on("SIGINT", async () => {

@@ -9,6 +9,11 @@
             "date": 1728457293404,
             "name": "com_port_logs\\application-2024-10-09.log",
             "hash": "895a89d19a4c2c0d18ee014b9a57569cf31cc94877ac7c3aa0f7a7741e5e31e7"
+        },
+        {
+            "date": 1728502409045,
+            "name": "com_port_logs\\application-2024-10-10.log",
+            "hash": "d8397be889f5c77dee488d528e4ba135e4054e6772d9f244da954171ce8f2d73"
         }
     ],
     "hashType": "sha256"

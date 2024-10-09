@@ -16,13 +16,13 @@ const Sidebar = () => {
 
   const menuItems = [
     { name: "Dashboard", icon: <FaHome />, href: "/" },
-    { name: "Settings", icon: <FaChartBar />, href: "/widgets" },
-    { name: "PLC", icon: <FaCogs />, href: "/plc" },
-    { name: "Reports", icon: <FaTable />, href: "/reports" },
-    { name: "Advanced", icon: <FaBell />, href: "/advanced-ui" },
+    // { name: "Settings", icon: <FaChartBar />, href: "/widgets" },
+    // { name: "PLC", icon: <FaCogs />, href: "/plc" },
+    // { name: "Reports", icon: <FaTable />, href: "/reports" },
+    // { name: "Advanced", icon: <FaBell />, href: "/advanced-ui" },
     // { name: "Marking Data", icon: <FaBell />, href: "/marking-data" },
     { name: "Servo Settings", icon: <FaBell />, href: "/servo-settings" },
-    { name: "Manual Mode", icon: <FaBell />, href: "/manual-mode" },
+    // { name: "Manual Mode", icon: <FaBell />, href: "/manual-mode" },
     // { name: "Calendar", icon: <FaCalendar />, href: "/calendar" },
     // { name: "Settings", icon: <FaCogs />, href: "/settings" },
   ];
