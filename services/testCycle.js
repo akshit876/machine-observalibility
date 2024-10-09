@@ -17,13 +17,14 @@ const __dirname = dirname(__filename);
 
 const comPort = new ComPortService();
 
-async function saveToMongoDB(io, serialNumber, scannerData) {
+async function saveToMongoDB(io, serialNumber, markingData, scannerData) {
   const now = new Date();
   const timestamp = format(now, "yyyy-MM-dd HH:mm:ss");
 
   const data = {
     Timestamp: new Date(timestamp),
     SerialNumber: serialNumber,
+    MarkingData: markingData,
     ScannerData: scannerData,
   };
 
@@ -89,6 +90,7 @@ async function compareScannerDataWithCode(scannerData) {
 let c = 0;
 const shiftUtility = new ShiftUtility();
 const barcodeGenerator = new BarcodeGenerator(shiftUtility);
+barcodeGenerator.initialize("main-data", "records");
 barcodeGenerator.setResetTime(6, 0);
 const comService = new BufferedComPortService({
   path: "COM3", // Make sure this matches your actual COM port
@@ -103,6 +105,11 @@ export async function runContinuousScan(io = null) {
 
   while (true) {
     try {
+      console.log("Counter", c + 1);
+      // if (c == 1) {
+      //   logger.info(" CYCLE ONE OVER");
+      //   return;
+      // }
       await mongoDbService.connect("main-data", "records");
       // await comPort.initSerialPort();
       await comService.initSerialPort();
@@ -138,13 +145,13 @@ export async function runContinuousScan(io = null) {
         logger.info("Scanner data is NG, transferred to text file");
         await writeBitsWithRest(1410, 11, 1); // Signal  to PLC
 
-        // 6. File transferred confirmation bit to be sent to PLC
-        await writeBitsWithRest(1414, 0, 1);
+        // 6.MARKING START BIT FROM S/W TO PLC
+        await writeBitsWithRest(1415, 4, 1);
         logger.info("File transfer confirmation sent to PLC");
 
-        // 7. Get signal from PLC at 1414.2
-        await waitForBitToBecomeOne(1414, 2, 1);
-        logger.info("Received signal from PLC at 1414.2");
+        // // 7. Get signal from PLC at 1414.2
+        await waitForBitToBecomeOne(1410, 2, 1);
+        logger.info("Received signal from PLC at 1410.2");
 
         // 8. Trigger scanner on bit now to PLC
         await writeBitsWithRest(1414, 1, 1);
@@ -162,6 +169,14 @@ export async function runContinuousScan(io = null) {
         // logger.info(`Second scanner data: ${secondScannerData}`);
         logger.info(`Second Scanner data: ${secondScannerData}`);
 
+        if (secondScannerData !== "NG") {
+          await writeBitsWithRest(1414, 6, 1); // Signal  to PLC
+          logger.info("Scanner ok to PLC");
+        } else {
+          await writeBitsWithRest(1414, 7, 1); // Signal  to PLC
+          logger.info("Scanner Nok to PLC");
+        }
+
         // 10. Compare scanner results
         const isDataMatching =
           await compareScannerDataWithCode(secondScannerData);
@@ -174,11 +189,20 @@ export async function runContinuousScan(io = null) {
           await writeBitsWithRest(1414, 4, 1); // NG signal
           logger.info("Scanner data does not match, sent NG signal to PLC");
         }
-        await saveToMongoDB(io, serialNo, secondScannerData);
+        await saveToMongoDB(io, serialNo, text, secondScannerData);
         logger.info("Scanner workflow completed");
 
         // Optional: Add a small delay between cycles if needed
         await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+        // / 7. Get signal from PLC at 1410.12
+        await waitForBitToBecomeOne(1410, 12, 1);
+        // reset al registgers over here if we get 1414.6 oir 1414.7 as 1
+
+        await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
+
+        await writeBitsWithRest(1414, 0, 1);
+
+        // logger.info("Received signal from PLC at 1410.2");
         c++;
       }
     } catch (error) {
