@@ -10,6 +10,7 @@ import ComPortService from "./ComPortService.js";
 import ShiftUtility from "./ShiftUtility.js";
 import BarcodeGenerator from "./barcodeGenrator.js";
 import mongoDbService from "./mongoDbService.js";
+import BufferedComPortService from "./ComPortService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,6 +90,11 @@ let c = 0;
 const shiftUtility = new ShiftUtility();
 const barcodeGenerator = new BarcodeGenerator(shiftUtility);
 barcodeGenerator.setResetTime(6, 0);
+const comService = new BufferedComPortService({
+  path: "COM3", // Make sure this matches your actual COM port
+  baudRate: 9600, // Adjust if needed
+  logDir: "com_port_logs", // Specify the directory for log files
+});
 
 // // Generate barcode data for current date and time
 // console.log(barcodeGenerator.generateBarcodeData());
@@ -98,24 +104,36 @@ export async function runContinuousScan(io = null) {
   while (true) {
     try {
       await mongoDbService.connect("main-data", "records");
-      await comPort.initSerialPort();
+      // await comPort.initSerialPort();
+      await comService.initSerialPort();
       logger.info("Starting scanner workflow");
 
       // 1. Start
-      await writeBitsWithRest(1410, 0, 1);
+      // await writeBitsWithRest(1410, 0, 1, 30000);
+      await waitForBitToBecomeOne(1410, 0, 1);
+      logger.info("Received signal from PLC at 1410.0");
 
       // 2-3. Read scanner data from s/w
-      const scannerData = await comPort.readData();
+      // let scannerData = "";
+      // await comService.readData((line) => {
+      //   // console.log("Received data:", line);
+      //   scannerData = line;
+      // });
+      const scannerData = await comService.readDataSync();
+      // logger.info(`Second scanner data: ${secondScannerData}`);
       logger.info(`Scanner data: ${scannerData}`);
 
       // 4-5. Check if data is OK or NG
       if (scannerData !== "NG") {
-        await writeBitsWithRest(1410, 3, 1); // Signal  to PLC
+        await writeBitsWithRest(1414, 6, 1); // Signal  to PLC
         logger.info("Scanner data is found, stopping machine");
         return; // Exit the function if NG
       } else {
-        await writeBitsWithRest(1410, 4, 1); // Signal  to PLC
+        console.log("her1");
+        await writeBitsWithRest(1414, 7, 1); // Signal  to PLC
         const { text, serialNo } = barcodeGenerator.generateBarcodeData();
+        console.log("her1");
+
         await writeOCRDataToFile(text);
         logger.info("Scanner data is NG, transferred to text file");
         await writeBitsWithRest(1410, 11, 1); // Signal  to PLC
@@ -133,8 +151,16 @@ export async function runContinuousScan(io = null) {
         logger.info("Triggered scanner bit to PLC");
 
         // 9. Read scanner data now
-        const secondScannerData = await comPort.readData();
-        logger.info(`Second scanner data: ${secondScannerData}`);
+        // const secondScannerData = await comPort.readData();
+        // logger.info(`Second scanner data: ${secondScannerData}`);
+        // let secondScannerData = "";
+        // await comService.readData((line) => {
+        //   // console.log("Received data:", line);
+        //   secondScannerData = line;
+        // });
+        const secondScannerData = await comService.readDataSync();
+        // logger.info(`Second scanner data: ${secondScannerData}`);
+        logger.info(`Second Scanner data: ${secondScannerData}`);
 
         // 10. Compare scanner results
         const isDataMatching =
@@ -166,10 +192,10 @@ export async function runContinuousScan(io = null) {
 }
 
 // code to test servce
-// runContinuousScan().catch((error) => {
-//   logger.error("Failed to start continuous scan:", error);
-//   process.exit(1);
-// });
+runContinuousScan().catch((error) => {
+  logger.error("Failed to start continuous scan:", error);
+  process.exit(1);
+});
 
 // Handle graceful shutdown
 process.on("SIGINT", async () => {

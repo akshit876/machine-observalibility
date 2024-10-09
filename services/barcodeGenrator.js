@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import SerialNumberGeneratorService from "./SerialNumberGeneratorService.js";
+import SerialNumberGeneratorService from "./serialNumber.js";
 import logger from "../logger.js";
 
 class BarcodeGenerator {
@@ -35,7 +35,7 @@ class BarcodeGenerator {
   }
 }
 
-// Usage example
+// // Usage example
 // import ShiftUtility from "./ShiftUtility.js";
 
 // const shiftUtility = new ShiftUtility();

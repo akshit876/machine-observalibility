@@ -1,0 +1,160 @@
+2024-10-09T07:01:33.409Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.423Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.431Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.439Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.447Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.456Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.464Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.474Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.484Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.492Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.500Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.508Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.516Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.524Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.532Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.540Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.547Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.554Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.565Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.573Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.583Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.591Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.598Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.606Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.614Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.622Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:01:33.633Z [error]: Error opening port: Opening COM3: Access denied
+2024-10-09T07:02:19.902Z [info]: Port opened successfully
+2024-10-09T07:11:06.220Z [info]: Processed line: NG
+2024-10-09T07:21:07.074Z [info]: Port opened successfully
+2024-10-09T07:21:22.340Z [info]: Processed line: NG
+2024-10-09T07:30:19.869Z [info]: Port opened successfully
+2024-10-09T07:30:24.440Z [info]: Processed line: NG
+2024-10-09T07:33:49.979Z [info]: Port opened successfully
+2024-10-09T07:33:54.198Z [info]: Processed line: NG
+2024-10-09T07:33:55.132Z [info]: Processed line: NG
+2024-10-09T07:34:04.355Z [info]: Serial port is already initialized
+2024-10-09T07:34:34.474Z [info]: Serial port is already initialized
+2024-10-09T07:39:51.681Z [info]: Port opened successfully
+2024-10-09T07:39:55.030Z [info]: Processed line: NG
+2024-10-09T07:39:55.980Z [info]: Processed line: NG
+2024-10-09T07:40:05.204Z [info]: Serial port is already initialized
+2024-10-09T07:40:34.422Z [info]: Port opened successfully
+2024-10-09T07:40:37.892Z [info]: Processed line: NG
+2024-10-09T07:40:38.826Z [info]: Processed line: NG
+2024-10-09T07:40:48.051Z [info]: Serial port is already initialized
+2024-10-09T07:41:22.604Z [info]: Port opened successfully
+2024-10-09T07:41:23.972Z [info]: Processed line: NG
+2024-10-09T07:41:24.922Z [info]: Processed line: NG
+2024-10-09T07:41:34.137Z [info]: Serial port is already initialized
+2024-10-09T07:42:04.800Z [info]: Serial port is already initialized
+2024-10-09T07:42:34.945Z [info]: Serial port is already initialized
+2024-10-09T07:43:05.082Z [info]: Serial port is already initialized
+2024-10-09T07:43:35.213Z [info]: Serial port is already initialized
+2024-10-09T07:44:05.327Z [info]: Serial port is already initialized
+2024-10-09T07:44:35.443Z [info]: Serial port is already initialized
+2024-10-09T07:45:05.572Z [info]: Serial port is already initialized
+2024-10-09T07:45:35.693Z [info]: Serial port is already initialized
+2024-10-09T07:46:05.830Z [info]: Serial port is already initialized
+2024-10-09T07:46:35.963Z [info]: Serial port is already initialized
+2024-10-09T07:46:47.999Z [info]: Port opened successfully
+2024-10-09T07:46:51.212Z [info]: Processed line: NG
+2024-10-09T07:47:21.364Z [info]: Serial port is already initialized
+2024-10-09T07:47:53.576Z [info]: Port opened successfully
+2024-10-09T07:47:54.813Z [info]: Processed line: NG
+2024-10-09T07:47:55.497Z [info]: Processed line: NG
+2024-10-09T07:48:05.523Z [info]: Serial port is already initialized
+2024-10-09T07:48:35.652Z [info]: Serial port is already initialized
+2024-10-09T07:49:05.784Z [info]: Serial port is already initialized
+2024-10-09T07:49:35.911Z [info]: Serial port is already initialized
+2024-10-09T07:50:06.049Z [info]: Serial port is already initialized
+2024-10-09T07:50:36.176Z [info]: Serial port is already initialized
+2024-10-09T07:51:06.305Z [info]: Serial port is already initialized
+2024-10-09T07:51:36.425Z [info]: Serial port is already initialized
+2024-10-09T07:52:06.560Z [info]: Serial port is already initialized
+2024-10-09T07:52:27.449Z [info]: Port opened successfully
+2024-10-09T07:52:29.373Z [info]: Processed line: NG
+2024-10-09T07:52:30.122Z [info]: Processed line: NG
+2024-10-09T07:52:40.148Z [info]: Serial port is already initialized
+2024-10-09T07:53:12.651Z [info]: Port opened successfully
+2024-10-09T07:53:13.867Z [info]: Processed line: NG
+2024-10-09T07:53:14.601Z [info]: Processed line: NG
+2024-10-09T07:53:24.633Z [info]: Serial port is already initialized
+2024-10-09T07:53:54.755Z [info]: Serial port is already initialized
+2024-10-09T07:54:24.899Z [info]: Serial port is already initialized
+2024-10-09T07:54:50.024Z [info]: Port opened successfully
+2024-10-09T07:55:05.065Z [info]: Processed line: NG
+2024-10-09T07:55:05.798Z [info]: Processed line: NG
+2024-10-09T07:55:15.820Z [info]: Serial port is already initialized
+2024-10-09T07:55:17.035Z [info]: Processed line: NG
+2024-10-09T07:55:17.768Z [info]: Processed line: NG
+2024-10-09T07:55:27.794Z [info]: Serial port is already initialized
+2024-10-09T07:56:43.491Z [info]: Port opened successfully
+2024-10-09T07:56:45.977Z [info]: Processed line: NG
+2024-10-09T07:56:46.743Z [info]: Processed line: NG
+2024-10-09T07:56:56.765Z [info]: Serial port is already initialized
+2024-10-09T07:56:58.563Z [info]: Processed line: NG
+2024-10-09T07:56:59.313Z [info]: Processed line: NG
+2024-10-09T07:57:07.898Z [info]: Processed line: NG
+2024-10-09T07:57:09.215Z [info]: Processed line: NG
+2024-10-09T07:57:09.341Z [info]: Serial port is already initialized
+2024-10-09T07:57:10.182Z [info]: Processed line: NG
+2024-10-09T07:57:11.333Z [info]: Processed line: NG
+2024-10-09T07:57:14.584Z [info]: Processed line: NG
+2024-10-09T07:57:21.346Z [info]: Serial port is already initialized
+2024-10-09T07:57:27.687Z [info]: Processed line: NG
+2024-10-09T07:57:28.421Z [info]: Processed line: NG
+2024-10-09T07:57:38.437Z [info]: Serial port is already initialized
+2024-10-09T07:58:08.564Z [info]: Serial port is already initialized
+2024-10-09T07:58:38.696Z [info]: Serial port is already initialized
+2024-10-09T07:59:04.097Z [info]: Processed line: NG
+2024-10-09T07:59:04.864Z [info]: Processed line: NG
+2024-10-09T07:59:14.893Z [info]: Serial port is already initialized
+2024-10-09T07:59:16.617Z [info]: Processed line: NG
+2024-10-09T07:59:17.367Z [info]: Processed line: NG
+2024-10-09T07:59:27.386Z [info]: Serial port is already initialized
+2024-10-09T07:59:28.971Z [info]: Processed line: NG
+2024-10-09T07:59:29.754Z [info]: Processed line: NG
+2024-10-09T07:59:39.776Z [info]: Serial port is already initialized
+2024-10-09T07:59:41.574Z [info]: Processed line: NG
+2024-10-09T07:59:42.341Z [info]: Processed line: NG
+2024-10-09T07:59:47.476Z [info]: Processed line: NG
+2024-10-09T07:59:52.366Z [info]: Serial port is already initialized
+2024-10-09T07:59:57.679Z [info]: Processed line: NG
+2024-10-09T07:59:58.396Z [info]: Processed line: NG
+2024-10-09T08:00:08.413Z [info]: Serial port is already initialized
+2024-10-09T08:00:10.383Z [info]: Processed line: NG
+2024-10-09T08:00:11.116Z [info]: Processed line: NG
+2024-10-09T08:00:19.802Z [info]: Processed line: NG
+2024-10-09T08:00:21.135Z [info]: Serial port is already initialized
+2024-10-09T08:00:27.754Z [info]: Processed line: NG
+2024-10-09T08:00:29.438Z [info]: Processed line: NG
+2024-10-09T08:00:39.453Z [info]: Serial port is already initialized
+2024-10-09T08:00:40.341Z [info]: Processed line: NG
+2024-10-09T08:00:41.058Z [info]: Processed line: NG
+2024-10-09T08:00:51.082Z [info]: Serial port is already initialized
+2024-10-09T08:00:57.412Z [info]: Processed line: NG
+2024-10-09T08:00:58.146Z [info]: Processed line: NG
+2024-10-09T08:01:08.166Z [info]: Serial port is already initialized
+2024-10-09T08:01:09.999Z [info]: Processed line: NG
+2024-10-09T08:01:10.716Z [info]: Processed line: NG
+2024-10-09T08:01:20.744Z [info]: Serial port is already initialized
+2024-10-09T08:01:21.052Z [info]: Processed line: NG
+2024-10-09T08:01:21.769Z [info]: Processed line: NG
+2024-10-09T08:01:31.790Z [info]: Serial port is already initialized
+2024-10-09T08:01:33.539Z [info]: Processed line: NG
+2024-10-09T08:01:34.273Z [info]: Processed line: NG
+2024-10-09T08:01:44.291Z [info]: Serial port is already initialized
+2024-10-09T08:02:35.056Z [info]: Processed line: NG
+2024-10-09T08:02:35.790Z [info]: Processed line: NG
+2024-10-09T08:02:45.819Z [info]: Serial port is already initialized
+2024-10-09T08:02:47.059Z [info]: Processed line: NG
+2024-10-09T08:02:47.826Z [info]: Processed line: NG
+2024-10-09T08:02:57.844Z [info]: Serial port is already initialized
+2024-10-09T08:03:00.146Z [info]: Processed line: NG
+2024-10-09T08:03:00.863Z [info]: Processed line: NG
+2024-10-09T08:03:10.876Z [info]: Serial port is already initialized
+2024-10-09T08:03:12.000Z [info]: Processed line: NG
+2024-10-09T08:03:12.733Z [info]: Processed line: NG
+2024-10-09T08:03:22.748Z [info]: Serial port is already initialized
