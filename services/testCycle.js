@@ -110,6 +110,21 @@ const comService = new BufferedComPortService({
 export async function runContinuousScan(io = null) {
   // eslint-disable-next-line no-constant-condition
 
+  const resetBits = async () => {
+    try {
+      // await writeBitsWithRest(1414, 0, 0); // Reset bit 1414.0
+      await writeBitsWithRest(1414, 1, 0); // Reset bit 1414.1
+      await writeBitsWithRest(1414, 3, 0); // Reset bit 1414.3
+      await writeBitsWithRest(1414, 4, 0); // Reset bit 1414.4
+      await writeBitsWithRest(1414, 6, 0); // Reset bit 1414.6
+      await writeBitsWithRest(1414, 7, 0); // Reset bit 1414.7
+      await writeBitsWithRest(1414, 12, 0); // Reset bit 1414.12
+      logger.info("All bits reset to zero");
+    } catch (error) {
+      logger.error("Error resetting bits:", error);
+    }
+  };
+
   while (true) {
     try {
       console.log("Counter", c + 1);
@@ -141,7 +156,7 @@ export async function runContinuousScan(io = null) {
       if (scannerData !== "NG") {
         await writeBitsWithRest(1414, 6, 1); // Signal  to PLC
         logger.info("Scanner data is found, stopping machine");
-        return; // Exit the function if NG
+        continue; // Exit the function if NG
       } else {
         console.log("her1");
         await writeBitsWithRest(1414, 7, 1); // Signal  to PLC
@@ -217,6 +232,7 @@ export async function runContinuousScan(io = null) {
 
         // logger.info("Received signal from PLC at 1410.2");
         c++;
+        await resetBits();
       }
     } catch (error) {
       logger.error("Error in scanner workflow:", error);
@@ -234,16 +250,33 @@ export async function runContinuousScan(io = null) {
 //   process.exit(1);
 // });
 
+const resetBits = async () => {
+  try {
+    // await writeBitsWithRest(1414, 0, 0); // Reset bit 1414.0
+    await writeBitsWithRest(1414, 1, 0); // Reset bit 1414.1
+    await writeBitsWithRest(1414, 3, 0); // Reset bit 1414.3
+    await writeBitsWithRest(1414, 4, 0); // Reset bit 1414.4
+    await writeBitsWithRest(1414, 6, 0); // Reset bit 1414.6
+    await writeBitsWithRest(1414, 7, 0); // Reset bit 1414.7
+    await writeBitsWithRest(1414, 12, 0); // Reset bit 1414.12
+    logger.info("All bits reset to zero");
+  } catch (error) {
+    logger.error("Error resetting bits:", error);
+  }
+};
+
 // Handle graceful shutdown
 process.on("SIGINT", async () => {
   logger.info("Received SIGINT. Closing MongoDB connection and exiting...");
   await mongoDbService.disconnect();
+  await resetBits();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   logger.info("Received SIGTERM. Closing MongoDB connection and exiting...");
   await mongoDbService.disconnect();
+  await resetBits();
   process.exit(0);
 });
 // runContinuousScan(null).then((o) => console.log({ o }));

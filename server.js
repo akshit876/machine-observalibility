@@ -25,6 +25,9 @@ import { manualRun } from "./services/manualRunService.js";
 import mongoDbService from "./services/mongoDbService.js";
 import { runContinuousScan } from "./services/testCycle.js";
 import cronService from "./services/cronService.js";
+import ShiftUtility from "./services/ShiftUtility.js";
+import BufferedComPortService from "./services/ComPortService.js";
+import BarcodeGenerator from "./services/barcodeGenrator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -267,11 +270,22 @@ app.prepare().then(() => {
 
       cronService.startAllJobs();
 
+      const c = 0;
+      const shiftUtility = new ShiftUtility();
+      const barcodeGenerator = new BarcodeGenerator(shiftUtility);
+      barcodeGenerator.initialize("main-data", "records");
+      barcodeGenerator.setResetTime(6, 0);
+      const comService = new BufferedComPortService({
+        path: "COM3", // Make sure this matches your actual COM port
+        baudRate: 9600, // Adjust if needed
+        logDir: "com_port_logs", // Specify the directory for log files
+      });
+
       // Make sure to call this function when your application starts
-      // runContinuousScan(io).catch((error) => {
-      //   logger.error("Failed to start continuous scan:", error);
-      //   process.exit(1);
-      // });
+      runContinuousScan(io).catch((error) => {
+        logger.error("Failed to start continuous scan:", error);
+        process.exit(1);
+      });
 
       // /-----------------------------------------------------------
       // await runContinuousScan();

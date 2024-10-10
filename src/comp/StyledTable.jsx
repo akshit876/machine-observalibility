@@ -14,19 +14,12 @@ const StyledTable = ({ data }) => {
     return <p>No data available</p>;
   }
 
-  console.log({ data });
-
-  // Define the headers for the table
   const headers = [
-    { key: "SerialNumber", label: "Serial Number" },
-    { key: "MarkingData", label: "Marking Data" },
-    { key: "ScannerData", label: "Scanner Data" },
-    // { key: "Shift", label: "Shift" },
-    { key: "Result", label: "Result" },
-    { key: "Timestamp", label: "Timestamp" },
-    // { key: "OCRData", label: "OCR Data" },
-    // { key: "Grade", label: "Grade" },
-    // { key: "Status", label: "Status" },
+    { key: "SerialNumber", label: "Serial Number", width: "150px" },
+    { key: "MarkingData", label: "Marking Data", width: "150px" },
+    { key: "ScannerData", label: "Scanner Data", width: "150px" },
+    { key: "Result", label: "Result", width: "100px" },
+    { key: "Timestamp", label: "Timestamp", width: "200px" },
   ];
 
   return (
@@ -35,20 +28,26 @@ const StyledTable = ({ data }) => {
         <h1 className="text-2xl font-bold text-gray-800">Scan Results</h1>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        {/* Fixed Header Table */}
+        <Table className="w-full">
+          <TableHeader>
+            <TableRow>
+              {headers.map((header) => (
+                <TableHead
+                  key={header.key}
+                  style={{ width: header.width }}
+                  className="bg-gray-50 text-left text-sm font-medium text-gray-500 py-3 px-4 border-b"
+                >
+                  {header.label}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+        </Table>
+
+        {/* Scrollable Table Container */}
+        <div className="overflow-x-auto max-h-[36rem] overflow-y-auto">
           <Table className="w-full">
-            <TableHeader>
-              <TableRow>
-                {headers.map((header) => (
-                  <TableHead
-                    key={header.key}
-                    className="bg-gray-50 text-left text-sm font-medium text-gray-500 py-3 px-4"
-                  >
-                    {header.label}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {data.map((row, rowIndex) => (
                 <TableRow
@@ -58,7 +57,8 @@ const StyledTable = ({ data }) => {
                   {headers.map((header) => (
                     <TableCell
                       key={header.key}
-                      className="text-sm text-gray-700 py-3 px-4 whitespace-nowrap overflow-hidden text-ellipsis"
+                      style={{ width: header.width }}
+                      className="text-sm text-gray-700 py-3 px-4 whitespace-nowrap overflow-hidden text-ellipsis border-b"
                     >
                       {header.key === "Timestamp"
                         ? new Date(row[header.key]).toLocaleString()
