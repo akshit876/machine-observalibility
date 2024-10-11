@@ -258,6 +258,7 @@ app.prepare().then(() => {
     // watchCodeFile();
 
     // Initialize Modbus connection once
+    let comService = null;
     try {
       await connect();
       logger.info("Modbus connection initialized");
@@ -275,14 +276,14 @@ app.prepare().then(() => {
       const barcodeGenerator = new BarcodeGenerator(shiftUtility);
       barcodeGenerator.initialize("main-data", "records");
       barcodeGenerator.setResetTime(6, 0);
-      const comService = new BufferedComPortService({
+      comService = new BufferedComPortService({
         path: "COM3", // Make sure this matches your actual COM port
         baudRate: 9600, // Adjust if needed
         logDir: "com_port_logs", // Specify the directory for log files
       });
 
       // Make sure to call this function when your application starts
-      runContinuousScan(io).catch((error) => {
+      runContinuousScan(io, comService).catch((error) => {
         logger.error("Failed to start continuous scan:", error);
         process.exit(1);
       });
@@ -295,6 +296,7 @@ app.prepare().then(() => {
     } catch (error) {
       emitErrorEvent(io, "modbus-connection-error", JSON.stringify(error));
       logger.error("Failed to initialize Modbus connection:", error);
+      await comService.closePort();
     }
   });
 

@@ -53,13 +53,20 @@ class ModbusConnection {
     }
   }
 
-  async readRegister(address, len) {
+  async readRegister(address, len, conti = null, bit = null, isPrint = true) {
     await this.ensureConnection();
     try {
       const { data } = await this.client.readHoldingRegisters(address, len);
-      logger.info(
-        `Read registers starting at address ${address} (length: ${len}): ${data}`
-      );
+      if (isPrint)
+        if (!conti && !bit)
+          logger.info(
+            `Read registers starting at address ${address} (length: ${len}): ${data}`
+          );
+        else {
+          logger.info(
+            `Read registers starting at address ${address} (length: ${len}) (bit : ${bit}): ${data}`
+          );
+        }
       return data;
     } catch (error) {
       emitErrorEvent(
@@ -152,15 +159,16 @@ class ModbusConnection {
     }
   }
 
-  async readBit(address, bitPosition) {
+  async readBit(address, bitPosition, conti = false) {
     await this.ensureConnection();
     try {
       const result = await this.client.readHoldingRegisters(address, 1);
       const registerValue = result.data[0];
       const bitValue = (registerValue & (1 << bitPosition)) !== 0;
-      logger.info(
-        `Read bit ${bitPosition} from register ${address}: ${bitValue}`
-      );
+      if (!conti)
+        logger.info(
+          `Read bit ${bitPosition} from register ${address}: ${bitValue}`
+        );
       return bitValue;
     } catch (error) {
       emitErrorEvent(
@@ -316,14 +324,19 @@ export const setSocket = (socket) => {
 };
 
 export const connect = () => modbusConnection.connect();
-export const readRegister = (address, len) =>
-  modbusConnection.readRegister(address, len);
+export const readRegister = (
+  address,
+  len,
+  conti = null,
+  bit = null,
+  isPrint = true
+) => modbusConnection.readRegister(address, len, conti, bit, isPrint);
 export const writeRegister = (address, value) =>
   modbusConnection.writeRegister(address, value);
 export const readRegisterAndProvideASCII = (address, len) =>
   modbusConnection.readRegisterAndProvideASCII(address, len);
-export const readBit = (address, bitPosition) =>
-  modbusConnection.readBit(address, bitPosition);
+export const readBit = (address, bitPosition, conti = false) =>
+  modbusConnection.readBit(address, bitPosition, conti);
 export const writeBit = (address, bitPosition, value) =>
   modbusConnection.writeBit(address, bitPosition, value);
 export const readBits = (address, bitPositions) =>

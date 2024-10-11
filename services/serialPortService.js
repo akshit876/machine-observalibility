@@ -47,14 +47,18 @@ const codeFormat = () => {
 };
 
 export async function waitForBitToBecomeOne(register, bit) {
+  // Log once at the beginning, indicating that we are waiting for the bit to become 1
+  console.log(`Waiting for bit ${bit} on register ${register} to become 1...`);
+
   return new Promise((resolve) => {
     const interval = setInterval(async () => {
-      const bitValue = await readRegister(register, 1);
+      const bitValue = await readRegister(register, 1, true, bit, false);
       if ((bitValue & (1 << bit)) !== 0) {
-        clearInterval(interval);
-        resolve();
+        // Check if the bit is set to 1
+        clearInterval(interval); // Clear the interval once the bit is detected
+        resolve(); // Resolve the promise, allowing the caller to proceed
       }
-    }, 100);
+    }, 100); // Check every 100ms
   });
 }
 /**
