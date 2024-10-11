@@ -343,8 +343,20 @@ export const readBits = (address, bitPositions) =>
   modbusConnection.readBits(address, bitPositions);
 export const writeBits = (address, bitValues) =>
   modbusConnection.writeBits(address, bitValues);
-export const writeBitsWithRest = (address, bitPosition, value, delay) =>
-  modbusConnection.writeBitWithReset(address, bitPosition, value, delay);
+export const writeBitsWithRest = (
+  address,
+  bitPosition,
+  value,
+  delay,
+  isPrint = true
+) =>
+  modbusConnection.writeBitWithReset(
+    address,
+    bitPosition,
+    value,
+    delay,
+    isPrint
+  );
 export const readDataAndConfirm = (
   address,
   len,

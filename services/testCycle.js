@@ -826,12 +826,12 @@ export async function runContinuousScan(io = null, comService) {
 const resetBits = async () => {
   try {
     // await writeBitsWithRest(1414, 0, 0); // Reset bit 1414.0
-    await writeBitsWithRest(1414, 1, 0); // Reset bit 1414.1
-    await writeBitsWithRest(1414, 3, 0); // Reset bit 1414.3
-    await writeBitsWithRest(1414, 4, 0); // Reset bit 1414.4
-    await writeBitsWithRest(1414, 6, 0); // Reset bit 1414.6
-    await writeBitsWithRest(1414, 7, 0); // Reset bit 1414.7
-    await writeBitsWithRest(1414, 12, 0); // Reset bit 1414.12
+    await writeBitsWithRest(1414, 1, 0, false); // Reset bit 1414.1
+    await writeBitsWithRest(1414, 3, 0, false); // Reset bit 1414.3
+    await writeBitsWithRest(1414, 4, 0, false); // Reset bit 1414.4
+    await writeBitsWithRest(1414, 6, 0, false); // Reset bit 1414.6
+    await writeBitsWithRest(1414, 7, 0, false); // Reset bit 1414.7
+    await writeBitsWithRest(1414, 12, 0, false); // Reset bit 1414.12
     logger.info("All bits reset to zero");
   } catch (error) {
     logger.error("Error resetting bits:", error);
