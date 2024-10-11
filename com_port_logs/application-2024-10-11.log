@@ -316,3 +316,11 @@
 2024-10-11T10:50:29.895Z [info]: Port opened successfully
 2024-10-11T10:51:19.454Z [info]: Port opened successfully
 2024-10-11T10:51:26.202Z [info]: Processed line: NG
+2024-10-11T10:58:07.189Z [info]: Port opened successfully
+2024-10-11T10:58:25.601Z [info]: Processed line: NG
+2024-10-11T10:58:41.258Z [info]: Processed line: 111024B0024
+2024-10-11T10:58:41.426Z [info]: Serial port is already initialized
+2024-10-11T10:59:27.235Z [info]: Processed line: NG
+2024-10-11T10:59:43.256Z [info]: Processed line: 111024B0025
+2024-10-11T10:59:43.419Z [info]: Serial port is already initialized
+2024-10-11T11:00:07.030Z [info]: Processed line: NG
