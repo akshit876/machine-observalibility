@@ -21,20 +21,39 @@ async function monitorResetSignal() {
 
   while (true) {
     try {
-      console.log("here");
-      const resetSignal = await readBit(1600, 0);
+      // Request main thread to read the reset bit
+      parentPort.postMessage({ type: "readBit", register: 1600, bit: 0 });
+
+      // Wait for response from main thread
+      const resetSignal = await new Promise((resolve) => {
+        parentPort.once("message", (message) => {
+          if (message.type === "bitValue") {
+            resolve(message.value);
+          }
+        });
+      });
+
       if (resetSignal) {
         logger.info("Reset signal detected at 1600.0");
-        parentPort.postMessage("reset");
+        parentPort.postMessage({ type: "reset" });
+
         // Wait for the bit to be cleared
-        while (await readBit(1600, 0)) {
+        while (true) {
+          parentPort.postMessage({ type: "readBit", register: 1600, bit: 0 });
+          const bitValue = await new Promise((resolve) => {
+            parentPort.once("message", (message) => {
+              if (message.type === "bitValue") {
+                resolve(message.value);
+              }
+            });
+          });
+          if (!bitValue) break;
           await sleep(100);
         }
         logger.info("Reset signal cleared");
       }
     } catch (error) {
       logger.error("Error in monitorResetSignal:", error);
-      // Wait a bit before retrying to prevent tight error loops
       await sleep(1000);
     }
     await sleep(50); // Small delay between checks

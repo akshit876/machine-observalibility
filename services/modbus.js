@@ -90,7 +90,13 @@ class ModbusConnection {
     return asciiString;
   }
 
-  async writeBitWithReset(address, bitPosition, value, delay = 200) {
+  async writeBitWithReset(
+    address,
+    bitPosition,
+    value,
+    delay = 200,
+    isPrint = true
+  ) {
     await this.ensureConnection();
     try {
       // Write the initial value to the bit
@@ -103,9 +109,10 @@ class ModbusConnection {
       setTimeout(async () => {
         // Reset the bit to 0 after the delay
         await this.writeBit(address, bitPosition, false);
-        logger.info(
-          `Successfully reset bit ${bitPosition} to 0 after ${delay}ms in register ${address}`
-        );
+        if (isPrint)
+          logger.info(
+            `Successfully reset bit ${bitPosition} to 0 after ${delay}ms in register ${address}`
+          );
       }, delay);
     } catch (error) {
       console.error({ error });
@@ -242,6 +249,18 @@ class ModbusConnection {
         `Error writing bit ${bitPosition} to register ${address}: ${error.message}`
       );
       this.handleError(error);
+      throw error;
+    }
+  }
+
+  async writeRegistersFull(address, values) {
+    await this.ensureConnection();
+    try {
+      logger.debug(`Writing values ${values} to register ${address}`);
+      await this.client.writeRegisters(address, values);
+      logger.info(`Successfully wrote values ${values} to register ${address}`);
+    } catch (error) {
+      logger.error(`Error writing to register ${address}:`, error);
       throw error;
     }
   }
@@ -386,7 +405,8 @@ export const readDataAndConfirm = (
     outputFeedbackBit,
     delay
   );
-
+export const writeRegisterFull = (add, val) =>
+  modbusConnection.writeRegistersFull(add, val);
 // writeBitsWithRest(1415, 9, 1, 2000);
 
 async function trackBits2() {

@@ -1,6 +1,13 @@
 import { fileURLToPath } from "url";
 import logger from "../logger.js";
-import { connect, readBit, writeBitsWithRest } from "./modbus.js";
+import {
+  connect,
+  readBit,
+  readRegister,
+  writeBitsWithRest,
+  writeRegister,
+  writeRegisterFull,
+} from "./modbus.js";
 // import { waitForBitToBecomeOne } from "./serialPortService.js";
 
 import { format } from "date-fns";
@@ -147,6 +154,7 @@ async function waitForBitToBecomeOne(register, bit, value) {
 }
 const TIMEOUT = 30000;
 async function checkResetOrBit(register, bit, value) {
+  console.log({ register, bit, value });
   return new Promise(async (resolve) => {
     let timeoutId;
     let intervalId;
@@ -232,18 +240,44 @@ export async function runContinuousScan(io = null, comService) {
   logger.info("Started reset signal monitor process");
 
   // Send a message to the worker to start monitoring
-  monitorProcess.postMessage("start");
 
-  monitorProcess.on("message", (message) => {
-    if (message === "reset") {
-      logger.info("Received reset signal from monitor process");
-      resetEmitter.emit("reset");
+  // monitorProcess.on("message", (message) => {
+  //   if (message === "reset") {
+  //     logger.info("Received reset signal from monitor process");
+  //     resetEmitter.emit("reset");
+  //   }
+  // });
+
+  // monitorProcess.on("error", (error) => {
+  //   logger.error("Error in worker thread:", error);
+  // });
+
+  monitorProcess.on("message", async (message) => {
+    if (message.type === "readBit") {
+      try {
+        const bitValue = await readBit(message.register, message.bit);
+        monitorProcess.postMessage({ type: "bitValue", value: bitValue });
+      } catch (error) {
+        logger.error("Error reading bit:", error);
+        monitorProcess.postMessage({ type: "error", error: error.message });
+      }
+    } else if (message.type === "reset") {
+      logger.info("Reset signal detected by monitorProcess thread");
+      // Handle reset logic here
     }
   });
 
   monitorProcess.on("error", (error) => {
-    logger.error("Error in worker thread:", error);
+    logger.error("Worker error:", error);
   });
+
+  monitorProcess.on("exit", (code) => {
+    if (code !== 0) {
+      logger.error(`Worker stopped with exit code ${code}`);
+    }
+  });
+
+  monitorProcess.postMessage("start");
 
   while (true) {
     try {
@@ -267,13 +301,13 @@ export async function runContinuousScan(io = null, comService) {
       if (scannerData !== "NG") {
         logger.info("First scan data is OK, stopping machine");
         logger.debug("Writing bit 1414.6 to signal OK scan");
-        await writeBitsWithRest(1414, 6, 1, false);
+        await writeBitsWithRest(1414, 6, 1, 200, false);
         continue;
       }
 
       logger.info("First scan data is NG, proceeding with workflow");
       logger.debug("Writing bit 1414.7 to signal NG scan");
-      await writeBitsWithRest(1414, 7, 1, false);
+      await writeBitsWithRest(1414, 7, 1, 200, false);
 
       logger.debug("Generating barcode data");
       const { text, serialNo } = barcodeGenerator.generateBarcodeData();
@@ -283,10 +317,10 @@ export async function runContinuousScan(io = null, comService) {
       logger.info("OCR data transferred to text file");
 
       logger.debug("Writing bit 1410.11 to signal file transfer");
-      await writeBitsWithRest(1410, 11, 1, false);
+      await writeBitsWithRest(1410, 11, 1, 200, false);
 
       logger.debug("Writing bit 1415.4 to confirm file transfer to PLC");
-      await writeBitsWithRest(1415, 4, 1, false);
+      await writeBitsWithRest(1415, 4, 1, 200, false);
       logger.info("File transfer confirmation sent to PLC");
 
       logger.debug("Checking for reset or waiting for bit 1410.2");
@@ -299,7 +333,7 @@ export async function runContinuousScan(io = null, comService) {
 
       logger.info("=== STARTING SECOND SCAN ===");
       logger.debug("Writing bit 1414.1 to trigger second scanner");
-      await writeBitsWithRest(1414, 1, 1, false);
+      await writeBitsWithRest(1414, 1, 1, 200, false);
       logger.info("Triggered second scanner");
 
       let secondScannerData;
@@ -327,6 +361,7 @@ export async function runContinuousScan(io = null, comService) {
         1414,
         secondScannerData !== "NG" ? 6 : 7,
         1,
+        200,
         false
       );
       logger.info(
@@ -346,7 +381,7 @@ export async function runContinuousScan(io = null, comService) {
       logger.debug(
         `Writing bit 1414.${isDataMatching ? 3 : 4} to signal data match result`
       );
-      await writeBitsWithRest(1414, isDataMatching ? 3 : 4, 1, false);
+      await writeBitsWithRest(1414, isDataMatching ? 3 : 4, 1, 200, false);
       logger.info(isDataMatching ? "Data matches" : "Data does not match");
 
       logger.debug("Saving data to MongoDB");
@@ -382,20 +417,56 @@ export async function runContinuousScan(io = null, comService) {
   }
 }
 
-async function resetBits() {
+async function resetSpecificBits(register, bitsToReset) {
   try {
-    // await writeBitsWithRest(1414, 1, 0, false);
-    await writeBitsWithRest(1414, 3, 0, false);
-    await writeBitsWithRest(1414, 4, 0, false);
-    await writeBitsWithRest(1414, 6, 0, false);
-    await writeBitsWithRest(1414, 7, 0, false);
-    // await writeBitsWithRest(1414, 12, 0, false);
-    logger.info("All bits reset to zero");
+    logger.info(
+      `Attempting to reset bits ${bitsToReset.join(", ")} in register ${register}`
+    );
+
+    // Validate input
+    if (
+      !Array.isArray(bitsToReset) ||
+      bitsToReset.some((bit) => bit < 0 || bit > 15)
+    ) {
+      throw new Error("Invalid bits array. Must be an array of numbers 0-15");
+    }
+
+    // First, read the current value of the register
+    const [currentValue] = await readRegister(register, 1);
+
+    // Create a mask to reset only the specified bits
+    const mask = bitsToReset.reduce((mask, bit) => mask & ~(1 << bit), 0xffff);
+    // console.log({ mask });
+    // Apply the mask to the current value
+    const newValue = currentValue & mask;
+    // console.log({ newValue });
+
+    const resetPromise = writeRegister(register, newValue);
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () =>
+          reject(new Error(`Timeout resetting bits in register ${register}`)),
+        TIMEOUT
+      )
+    );
+
+    await Promise.race([resetPromise, timeoutPromise]);
+
+    logger.info(
+      `Successfully reset bits ${bitsToReset.join(", ")} in register ${register}`
+    );
   } catch (error) {
-    logger.error("Error resetting bits:", error);
+    if (error.message.startsWith("Timeout resetting bits")) {
+      logger.error(
+        `Operation timed out while resetting bits in register ${register}`
+      );
+    } else {
+      logger.error(`Error resetting bits in register ${register}:`, error);
+    }
+    throw error; // Re-throw the error for the caller to handle if needed
   }
 }
-
 async function handleError(error) {
   console.log({ error });
   try {
@@ -417,6 +488,10 @@ async function checkReset() {
       resolve(false);
     }, 50);
   });
+}
+
+async function resetBits() {
+  return resetSpecificBits(1414, [3, 4, 6, 7]);
 }
 
 // Handle graceful shutdown
@@ -492,3 +567,64 @@ function runWorker() {
 }
 
 // runWorker();
+
+async function testBitManipulation() {
+  try {
+    logger.info("Starting comprehensive bit manipulation test");
+
+    await connect();
+    logger.info("Modbus connection established");
+
+    const testRegister = 1417;
+
+    // Step 1: Set all bits to 1
+    const allBitsSet = 0xffff; // 16-bit register with all bits set to 1
+    await writeRegister(testRegister, allBitsSet);
+    logger.info(`Set all bits in register ${testRegister} to 1`);
+
+    // Verify all bits are set
+    const [initialValue] = await readRegister(testRegister, 1);
+    logger.info(`Initial register value: 0x${initialValue.toString(16)}`);
+    if (initialValue !== allBitsSet) {
+      throw new Error("Failed to set all bits to 1");
+    }
+
+    // Step 2: Reset every alternate bit
+    const bitsToReset = [0, 2, 4, 6, 8, 10, 12, 14]; // Every even-numbered bit
+    await resetSpecificBits(testRegister, bitsToReset);
+    logger.info(`Reset alternate bits: ${bitsToReset.join(", ")}`);
+
+    // Verify the result
+    const [afterResetValue] = await readRegister(testRegister, 1);
+    logger.info(
+      `Register value after reset: 0x${afterResetValue.toString(16)}`
+    );
+
+    // Expected value after resetting alternate bits
+    const expectedValue = 0x5555; // Binary: 0101 0101 0101 0101
+
+    if (afterResetValue === expectedValue) {
+      logger.info(
+        "Reset operation successful: alternate bits were correctly reset"
+      );
+    } else {
+      logger.error(
+        `Unexpected result: expected 0x${expectedValue.toString(16)}, got 0x${afterResetValue.toString(16)}`
+      );
+    }
+
+    // Binary representation for clearer visualization
+    logger.info(
+      `Binary representation of result:   ${afterResetValue.toString(2).padStart(16, "0")}`
+    );
+    logger.info(
+      `Expected binary representation:    ${expectedValue.toString(2).padStart(16, "0")}`
+    );
+  } catch (error) {
+    logger.error("Test failed:", error);
+  } finally {
+    logger.info("Test completed");
+  }
+}
+
+// testBitManipulation();
