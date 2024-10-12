@@ -159,18 +159,33 @@ class ModbusConnection {
     }
   }
 
-  async readBit(address, bitPosition, conti = false) {
+  async readBit(address, bitPosition, conti = true) {
     await this.ensureConnection();
     try {
+      // console.log({ address, bitPosition });
       const result = await this.client.readHoldingRegisters(address, 1);
       const registerValue = result.data[0];
+      // console.log({ result: [...result] });
+      // console.log({ registerValue });
       const bitValue = (registerValue & (1 << bitPosition)) !== 0;
-      if (!conti)
+      // console.log({ registerValue, bitValue, conti });
+
+      const binaryString = registerValue.toString(2).padStart(16, "0");
+
+      // Convert binary string to an array of bits for better readability
+      const bitArray = binaryString.split("").map((bit) => parseInt(bit, 10));
+
+      // console.log(
+      //   `16-bit register value for register ${address}: ${binaryString}`
+      // );
+      // console.log(`Bit array for register ${address}:`, bitArray);
+      if (conti)
         logger.info(
           `Read bit ${bitPosition} from register ${address}: ${bitValue}`
         );
       return bitValue;
     } catch (error) {
+      console.log({ error });
       emitErrorEvent(
         this.socket,
         "MODBUS_READ_BIT_ERROR",
@@ -312,7 +327,7 @@ class ModbusConnection {
     if (error.errno === "ETIMEDOUT" || error.errno === "ECONNRESET") {
       logger.warn(`Connection error: ${error.errno}. Scheduling reconnect.`);
       this.isConnected = false;
-      this.scheduleReconnect();
+      // this.scheduleReconnect();
     }
   }
 }
@@ -373,3 +388,77 @@ export const readDataAndConfirm = (
   );
 
 // writeBitsWithRest(1415, 9, 1, 2000);
+
+async function trackBits2() {
+  const register = 1700; // Define the register address
+  const bitPositions = [0, 1, 2, 3]; // Bits to track
+  await connect();
+
+  try {
+    while (true) {
+      // Use Promise.all to read all bits in parallel
+      const bitValues = await Promise.allSettled(
+        bitPositions.map(async (bitPosition) => {
+          const bitValue = await readBit(register, bitPosition, true);
+          console.log({ bitPosition, bitValue });
+          return { bitPosition, bitValue };
+        })
+      );
+
+      console.log({ a: JSON.stringify(bitValues) });
+
+      // Log the values only when they are 1
+      // bitValues.forEach(({ bitPosition, bitValue }) => {
+      //   if (bitValue === true) {
+      //     console.log(`Bit ${bitPosition} in register ${register} is 1`);
+      //   }
+      // });
+
+      // Add a delay to avoid flooding logs (adjust the delay as needed)
+      await new Promise((resolve) => setTimeout(resolve, 10)); // 1-second delay
+    }
+  } catch (error) {
+    console.error(
+      `Error tracking bits in register ${register}: ${error.message}`
+    );
+  }
+}
+
+async function trackBits() {
+  const register = 1700; // Define the register address
+  const bitPositions = [0, 1, 2, 3]; // Bits to track
+  await connect();
+
+  try {
+    while (true) {
+      // Read the entire register once and log the binary representation
+      const result = await readRegister(register, 1); // Read full register (16 bits)
+      const registerValue = result[0];
+
+      // Convert register value to binary string and pad to 16 bits
+      const binaryString = registerValue.toString(2).padStart(16, "0");
+      console.log(
+        `16-bit register value for register ${register}: ${binaryString}`
+      );
+
+      // Check each specified bit position individually and log its state
+      bitPositions.forEach((bitPosition) => {
+        // Extract the bit value directly from the binary string
+        const bitValue = (registerValue & (1 << bitPosition)) !== 0;
+        console.log(
+          `Bit ${bitPosition} in register ${register} is ${bitValue ? "1" : "0"}`
+        );
+      });
+
+      // Add a delay to avoid flooding logs (adjust the delay as needed)
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
+    }
+  } catch (error) {
+    console.error(
+      `Error tracking bits in register ${register}: ${error.message}`
+    );
+  }
+}
+
+// Start tracking bits
+// trackBits();

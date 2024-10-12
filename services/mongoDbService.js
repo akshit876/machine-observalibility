@@ -144,7 +144,7 @@ class MongoDBService {
         Date: item.Date,
       }));
 
-      console.log({ transformedData });
+      // console.log({ transformedData });
 
       // Send the data to the client
       socket.emit("csv-data", { data: transformedData });

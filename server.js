@@ -281,6 +281,7 @@ app.prepare().then(() => {
         baudRate: 9600, // Adjust if needed
         logDir: "com_port_logs", // Specify the directory for log files
       });
+      await connect();
 
       // Make sure to call this function when your application starts
       runContinuousScan(io, comService).catch((error) => {
