@@ -24,6 +24,11 @@
             "date": 1728681059306,
             "name": "com_port_logs\\application-2024-10-12.log",
             "hash": "ce15e36ba4d81d4cdf5cdff333e5cbef4e9fd96a870787b5a4a9794a3cb27ee5"
+        },
+        {
+            "date": 1728761883047,
+            "name": "com_port_logs\\application-2024-10-13.log",
+            "hash": "86bb3ef6d85dfc03a28abcd4f37c6c90411f78d4dceebbe0dbd108f6c892acdb"
         }
     ],
     "hashType": "sha256"
