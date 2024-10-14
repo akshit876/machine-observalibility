@@ -1,6 +1,7 @@
 import { parentPort } from "worker_threads";
 import logger from "../logger.js";
 import { readBit } from "./modbus.js";
+import { resetBits } from "./testCycle.js";
 
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -36,6 +37,7 @@ async function monitorResetSignal() {
       if (resetSignal) {
         logger.info("Reset signal detected at 1600.0");
         parentPort.postMessage({ type: "reset" });
+        // await resetBits();
 
         // Wait for the bit to be cleared
         while (true) {

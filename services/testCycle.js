@@ -264,6 +264,7 @@ export async function runContinuousScan(io = null, comService) {
     } else if (message.type === "reset") {
       logger.info("Reset signal detected by monitorProcess thread");
       // Handle reset logic here
+      await resetBits();
     }
   });
 
@@ -282,6 +283,7 @@ export async function runContinuousScan(io = null, comService) {
   while (true) {
     try {
       logger.info(`Starting scan cycle ${c + 1}`);
+      await resetBits();
 
       logger.info("Starting scanner workflow");
 
@@ -298,16 +300,17 @@ export async function runContinuousScan(io = null, comService) {
         continue;
       }
 
-      if (scannerData !== "NG") {
-        logger.info("First scan data is OK, stopping machine");
-        logger.debug("Writing bit 1414.6 to signal OK scan");
-        await writeBitsWithRest(1414, 6, 1, 200, false);
-        continue;
-      }
+      // if (scannerData !== "NG") {
+      //   logger.info("First scan data is OK, stopping machine");
+      //   logger.debug("Writing bit 1414.6 to signal OK scan");
+      //   await writeBitsWithRest(1414, 6, 1, 200, false);
+      //   continue;
+      // }
 
       logger.info("First scan data is NG, proceeding with workflow");
       logger.debug("Writing bit 1414.7 to signal NG scan");
-      await writeBitsWithRest(1414, 7, 1, 200, false);
+      await writeBitsWithRest(1414, 7, 1, 100, false);
+      await sleep(5 * 1000);
 
       logger.debug("Generating barcode data");
       const { text, serialNo } = barcodeGenerator.generateBarcodeData();
@@ -317,11 +320,12 @@ export async function runContinuousScan(io = null, comService) {
       logger.info("OCR data transferred to text file");
 
       logger.debug("Writing bit 1410.11 to signal file transfer");
-      await writeBitsWithRest(1410, 11, 1, 200, false);
+      await writeBitsWithRest(1410, 11, 1, 100, false);
 
-      logger.debug("Writing bit 1415.4 to confirm file transfer to PLC");
-      await writeBitsWithRest(1415, 4, 1, 200, false);
-      logger.info("File transfer confirmation sent to PLC");
+      // logger.debug("Writing bit 1415.4 to confirm file transfer to PLC");
+      // await writeBitsWithRest(1415, 4, 1, 100, false);
+      // logger.info("File transfer confirmation sent to PLC");
+      await sleep(5 * 1000);
 
       logger.debug("Checking for reset or waiting for bit 1410.2");
       if (await checkResetOrBit(1410, 2, 1)) {
@@ -490,8 +494,9 @@ async function checkReset() {
   });
 }
 
-async function resetBits() {
-  return resetSpecificBits(1414, [3, 4, 6, 7]);
+export async function resetBits() {
+  await resetSpecificBits(1414, [3, 4, 6, 7]);
+  await resetSpecificBits(1415, [4]);
 }
 
 // Handle graceful shutdown
