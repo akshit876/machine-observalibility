@@ -90,6 +90,42 @@ class ModbusConnection {
     return asciiString;
   }
 
+  // async writeBitWithReset(
+  //   address,
+  //   bitPosition,
+  //   value,
+  //   delay = 200,
+  //   isPrint = true
+  // ) {
+  //   await this.ensureConnection();
+  //   try {
+  //     // Write the initial value to the bit
+  //     await this.writeBit(address, bitPosition, value);
+  //     logger.info(
+  //       `Successfully wrote bit ${bitPosition} with value ${value} to register ${address}`
+  //     );
+
+  //     // Wait for the specified delay (default is 200ms)
+  //     setTimeout(async () => {
+  //       // Reset the bit to 0 after the delay
+  //       await this.writeBit(address, bitPosition, false);
+  //       if (isPrint)
+  //         logger.info(
+  //           `Successfully reset bit ${bitPosition} to 0 after ${delay}ms in register ${address}`
+  //         );
+  //     }, delay);
+  //   } catch (error) {
+  //     console.error({ error });
+  //     emitErrorEvent(
+  //       this.socket,
+  //       "MODBUS_WRITE_BIT_RESET_ERROR",
+  //       `Error writing or resetting bit ${bitPosition} in register ${address}: ${error.message}`
+  //     );
+  //     this.handleError(error);
+  //     throw error;
+  //   }
+  // }
+
   async writeBitWithReset(
     address,
     bitPosition,
@@ -106,14 +142,15 @@ class ModbusConnection {
       );
 
       // Wait for the specified delay (default is 200ms)
-      setTimeout(async () => {
-        // Reset the bit to 0 after the delay
-        await this.writeBit(address, bitPosition, false);
-        if (isPrint)
-          logger.info(
-            `Successfully reset bit ${bitPosition} to 0 after ${delay}ms in register ${address}`
-          );
-      }, delay);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      // Reset the bit to 0 after the delay
+      await this.writeBit(address, bitPosition, 0);
+      if (isPrint) {
+        logger.info(
+          `Successfully reset bit ${bitPosition} to 0 after ${delay}ms in register ${address}`
+        );
+      }
     } catch (error) {
       console.error({ error });
       emitErrorEvent(

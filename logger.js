@@ -14,7 +14,7 @@ const fileFormat = winston.format.combine(
     format: "YYYY-MM-DD HH:mm:ss",
   }),
   winston.format.printf(({ timestamp, level, message, stack, service }) => {
-    return `${timestamp} [${level}] [${service}] : ${stack || message}`;
+    return `${timestamp} [${level}]  : ${stack || message}`;
   })
 );
 
@@ -25,14 +25,15 @@ const consoleFormat = winston.format.combine(
     format: "YYYY-MM-DD HH:mm:ss",
   }),
   winston.format.printf(({ timestamp, level, message, stack, service }) => {
-    return `${timestamp} [${level}] [${service}] : ${stack || message}`;
+    // return `${timestamp} [${level}] [${service}] : ${stack || message}`;
+    return `${timestamp} [${level}]: ${stack || message}`;
   })
 );
 
 // Create the logger
 const logger = winston.createLogger({
   level: "info",
-  defaultMeta: { service: "serialport-service" }, // Set the service name here
+  defaultMeta: {}, // Set the service name here
   transports: [
     // Console transport with colored and readable logs
     // new winston.transports.Console({

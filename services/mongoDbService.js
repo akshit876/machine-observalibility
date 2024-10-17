@@ -135,13 +135,13 @@ class MongoDBService {
 
       // Transform the data
       const transformedData = data.map((item) => ({
-        Timestamp: item.Timestamp,
-        SerialNumber: item.SerialNumber,
-        MarkingData: item.MarkingData,
-        ScannerData: item.ScannerData,
-        Shift: item.Shift,
-        Result: item.Result,
-        Date: item.Date,
+        Timestamp: item?.Timestamp,
+        SerialNumber: item?.SerialNumber,
+        MarkingData: item?.MarkingData,
+        ScannerData: item?.ScannerData,
+        Shift: item?.Shift,
+        Result: item?.Result,
+        Date: item?.Date,
       }));
 
       // console.log({ transformedData });

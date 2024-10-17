@@ -120,9 +120,9 @@ const resetEmitter = new EventEmitter();
 
 const lastResetTime = 0;
 const RESET_COOLDOWN = 1000; // 1 second cooldown between resets
-const SCAN_READNER = 1000 * 1000; // 1 second cooldown between resets
+const SCAN_READNER = 10 * 1000; // 1 second cooldown between resets
 
-const sleep = promisify(setTimeout);
+export const sleep = promisify(setTimeout);
 
 async function waitForBitToBecomeOne(register, bit, value) {
   logger.debug(`awaiting ${register} , bit ${bit}`);
@@ -281,53 +281,66 @@ export async function runContinuousScan(io = null, comService) {
   monitorProcess.postMessage("start");
 
   while (true) {
+    logger.info(`Test-1`);
     try {
       logger.info(`Starting scan cycle ${c + 1}`);
       await resetBits();
-
+      if (await checkResetOrBit(1410, 0, 1)) {
+        logger.info("Reset detected at final step, restarting cycle");
+        continue;
+      }
       logger.info("Starting scanner workflow");
-
+      logger.info(
+        "-----------------------------------------------------------------------------------------------------------"
+      );
+      logger.info("Trigger First Scanner on ........");
+      await writeBitsWithRest(1415, 0, 1, 100, false);
+      await sleep(1000);
       logger.info("=== STARTING FIRST SCAN ===");
+      logger.info(
+        "-----------------------------------------------------------------------------------------------------------"
+      );
       let scannerData;
       try {
-        logger.debug("Attempting to read first scan data...");
+        logger.info("Attempting to read first scan data...");
         scannerData = await comService.readDataSync(SCAN_READNER);
         logger.info(`First scan data: ${scannerData}`);
       } catch (scanError) {
         logger.error("Error reading first scanner data:", scanError);
-        logger.debug("Calling handleError for first scan failure");
+        logger.info("Calling handleError for first scan failure");
         await handleError(scanError);
         continue;
       }
+      // await sleep(5 * 1000);
 
       // if (scannerData !== "NG") {
       //   logger.info("First scan data is OK, stopping machine");
-      //   logger.debug("Writing bit 1414.6 to signal OK scan");
+      //   logger.info("Writing bit 1414.6 to signal OK scan");
       //   await writeBitsWithRest(1414, 6, 1, 200, false);
       //   continue;
       // }
 
       logger.info("First scan data is NG, proceeding with workflow");
-      logger.debug("Writing bit 1414.7 to signal NG scan");
+      logger.info("Writing bit 1414.7 to signal NG scan");
       await writeBitsWithRest(1414, 7, 1, 100, false);
-      await sleep(5 * 1000);
+      // await sleep(5 * 1000);
 
-      logger.debug("Generating barcode data");
+      logger.info("Generating barcode data");
       const { text, serialNo } = barcodeGenerator.generateBarcodeData();
 
-      logger.debug("Writing OCR data to file");
+      logger.info("Writing OCR data to file");
       await writeOCRDataToFile(text);
       logger.info("OCR data transferred to text file");
 
-      logger.debug("Writing bit 1410.11 to signal file transfer");
+      logger.info("Writing bit 1410.11 to signal file transfer");
       await writeBitsWithRest(1410, 11, 1, 100, false);
 
-      // logger.debug("Writing bit 1415.4 to confirm file transfer to PLC");
+      // logger.info("Writing bit 1415.4 to confirm file transfer to PLC");
       // await writeBitsWithRest(1415, 4, 1, 100, false);
       // logger.info("File transfer confirmation sent to PLC");
       await sleep(5 * 1000);
 
-      logger.debug("Checking for reset or waiting for bit 1410.2");
+      logger.info("Checking for reset or waiting for bit 1410.2");
       if (await checkResetOrBit(1410, 2, 1)) {
         logger.info(
           "Reset detected while waiting for 1410.2, restarting cycle"
@@ -335,30 +348,38 @@ export async function runContinuousScan(io = null, comService) {
         continue;
       }
 
+      logger.info(
+        "-----------------------------------------------------------------------------------------------------------"
+      );
+
       logger.info("=== STARTING SECOND SCAN ===");
-      logger.debug("Writing bit 1414.1 to trigger second scanner");
-      await writeBitsWithRest(1414, 1, 1, 200, false);
+      logger.info(
+        "-----------------------------------------------------------------------------------------------------------"
+      );
+      logger.info("Writing bit 1414.F(15) to trigger second scanner");
+      await writeBitsWithRest(1414, 15, 1, 1000, false);
       logger.info("Triggered second scanner");
+      await sleep(1000);
 
       let secondScannerData;
       try {
-        logger.debug("Attempting to read second scan data...");
+        logger.info("Attempting to read second scan data...");
         secondScannerData = await comService.readDataSync(SCAN_READNER);
         logger.info(`Second scan data: ${secondScannerData}`);
       } catch (scanError) {
         logger.error("Error reading second scanner data:", scanError);
-        logger.debug("Calling handleError for second scan failure");
+        logger.info("Calling handleError for second scan failure");
         await handleError(scanError);
         continue;
       }
 
-      logger.debug("Checking for reset after second scan");
+      logger.info("Checking for reset after second scan");
       if (await checkReset()) {
         logger.info("Reset detected after second scan, restarting cycle");
         continue;
       }
 
-      logger.debug(
+      logger.info(
         `Writing bit 1414.${secondScannerData !== "NG" ? 6 : 7} to signal scan result`
       );
       await writeBitsWithRest(
@@ -372,23 +393,23 @@ export async function runContinuousScan(io = null, comService) {
         secondScannerData !== "NG" ? "Second scan OK" : "Second scan NG"
       );
 
-      logger.debug("Comparing scanner data with code");
+      logger.info("Comparing scanner data with code");
       const isDataMatching =
         await compareScannerDataWithCode(secondScannerData);
 
-      logger.debug("Checking for reset after data comparison");
+      logger.info("Checking for reset after data comparison");
       if (await checkReset()) {
         logger.info("Reset detected after data comparison, restarting cycle");
         continue;
       }
 
-      logger.debug(
+      logger.info(
         `Writing bit 1414.${isDataMatching ? 3 : 4} to signal data match result`
       );
       await writeBitsWithRest(1414, isDataMatching ? 3 : 4, 1, 200, false);
       logger.info(isDataMatching ? "Data matches" : "Data does not match");
 
-      logger.debug("Saving data to MongoDB");
+      logger.info("Saving data to MongoDB");
       await saveToMongoDB({
         io,
         serialNumber: serialNo,
@@ -398,26 +419,32 @@ export async function runContinuousScan(io = null, comService) {
       });
       logger.info("Data saved to MongoDB");
 
-      logger.debug("Checking for reset or waiting for bit 1410.12");
+      logger.info("Checking for reset or waiting for bit 1410.12");
       if (await checkResetOrBit(1410, 12, 1)) {
         logger.info("Reset detected at final step, restarting cycle");
         continue;
       }
 
       c++;
-      logger.debug("Resetting bits");
-      await resetBits();
+      logger.info("Resetting bits");
+      // await resetBits();
+      logger.info(
+        "-----------------------------------------------------------------------------------------------------------"
+      );
       logger.info(`Completed scan cycle ${c}`);
+      logger.info(
+        "-----------------------------------------------------------------------------------------------------------"
+      );
     } catch (error) {
       logger.error("Unexpected error in scanner workflow:", error);
-      logger.debug("Calling handleError for unexpected error");
+      logger.info("Calling handleError for unexpected error");
       await handleError(error);
-      logger.debug("Waiting 5 seconds before retrying");
+      logger.info("Waiting 5 seconds before retrying");
       await sleep(5000);
     }
 
-    logger.debug("Waiting 100ms before next cycle");
-    await sleep(100);
+    // logger.debug("Waiting 100ms before next cycle");
+    // await sleep(100);
   }
 }
 

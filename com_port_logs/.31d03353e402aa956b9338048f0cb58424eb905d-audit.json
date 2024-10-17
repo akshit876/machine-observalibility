@@ -34,6 +34,21 @@
             "date": 1728884081124,
             "name": "com_port_logs\\application-2024-10-14.log",
             "hash": "d5ba4c95a118a220cd042c6079c02f5c11918c3b15f690a9d3d0dfbfdeb9c4bb"
+        },
+        {
+            "date": 1728963476086,
+            "name": "com_port_logs\\application-2024-10-15.log",
+            "hash": "9dde381045e770dae2e32bc68030701ac236849622d1d8e6f7ea9e17c41d690d"
+        },
+        {
+            "date": 1729050242512,
+            "name": "com_port_logs\\application-2024-10-16.log",
+            "hash": "cb9253b290769db59288493fccf78da7842b86080f4e2503b948dbdbc27706b0"
+        },
+        {
+            "date": 1729131552062,
+            "name": "com_port_logs\\application-2024-10-17.log",
+            "hash": "2a75f2e9edd1dd973c0cad95af4c188913fb1c983c5b7e461a8ae24804113b67"
         }
     ],
     "hashType": "sha256"

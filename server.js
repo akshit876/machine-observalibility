@@ -282,6 +282,7 @@ app.prepare().then(() => {
         logDir: "com_port_logs", // Specify the directory for log files
       });
       await connect();
+      // console.log({ io });
 
       // Make sure to call this function when your application starts
       runContinuousScan(io, comService).catch((error) => {
