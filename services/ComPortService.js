@@ -5,6 +5,7 @@ import "winston-daily-rotate-file";
 import path from "path";
 import async from "async";
 import EventEmitter from "events";
+import { sleep } from "./testCycle.js";
 
 class BufferedComPortService extends EventEmitter {
   constructor(options = {}) {
@@ -21,11 +22,14 @@ class BufferedComPortService extends EventEmitter {
 
     // Initialize async.queue for in-memory job handling
     this.dataQueue = async.queue(async (task, callback) => {
+      console.log(`Emitting the data first: ${task.line}`);
+      this.emit("dataGot", task.line);
+      await sleep(1000);
       console.log(`Processing data from queue: ${task.line}`);
       this.log(`Processing data from queue: ${task.line}`, "info");
       // Add custom processing logic here, like saving to a database or other transformations
       callback(); // Signal that the job is done
-    }, 1); // Set concurrency to 1 to process one task at a time
+    }, 2); // Set concurrency to 1 to process one task at a time
   }
 
   setupLogger() {
@@ -104,11 +108,15 @@ class BufferedComPortService extends EventEmitter {
         // Add the processed line to the queue
         this.dataQueue.push({ line });
         // Emit an event with the scanner data
-        this.emit("data", line);
+        this.emit("dataGot", line);
       }
       this.buffer = this.buffer.slice(lineEnd + 1);
       lineEnd = this.buffer.indexOf("\n");
     }
+  }
+
+  clearBuffer() {
+    this.buffer = ""; // Clear the buffer before second scan
   }
 
   async closePort() {

@@ -285,6 +285,8 @@ export async function runContinuousScan(io = null, comService) {
     try {
       logger.info(`Starting scan cycle ${c + 1}`);
       await resetBits();
+      logger.info("Clearing buffer before second scan...");
+      comService.clearBuffer();
       if (await checkResetOrBit(1410, 0, 1)) {
         logger.info("Reset detected at final step, restarting cycle");
         continue;
@@ -294,24 +296,49 @@ export async function runContinuousScan(io = null, comService) {
         "-----------------------------------------------------------------------------------------------------------"
       );
       logger.info("Trigger First Scanner on ........");
-      await writeBitsWithRest(1415, 0, 1, 100, false);
-      await sleep(1000);
+      await writeBitsWithRest(1415, 0, 1, 800, false);
+      // await sleep(1000);
       logger.info("=== STARTING FIRST SCAN ===");
       logger.info(
         "-----------------------------------------------------------------------------------------------------------"
       );
+      await writeBitsWithRest(1415, 0, 1, 800, false);
+
       let scannerData;
       try {
-        logger.info("Attempting to read first scan data...");
-        scannerData = await new Promise((resolve) => {
-          comService.once("data", resolve);
+        // Step 1: Set up the event listener for incoming scanner data
+        logger.info("Setting up data listener for first scan...");
+
+        // Create a promise that resolves when data is received
+        scannerData = await new Promise((resolve, reject) => {
+          const dataHandler = (data) => {
+            logger.info(`Data received: ${data}`);
+            resolve(data); // Resolve the promise when data is received
+            comService.off("dataGot", dataHandler); // Remove listener once data is processed
+          };
+
+          // Add event listener for incoming data
+          comService.on("dataGot", dataHandler);
+
+          // Set a timeout to avoid hanging indefinitely
+          const timeout = setTimeout(() => {
+            comService.off("dataGot", dataHandler);
+            reject(new Error("Timeout waiting for scanner data"));
+          }, 10000); // Adjust timeout as needed
+
+          // Trigger the scanner after the event listener is set
+          logger.info("Triggering the scanner...");
+          writeBitsWithRest(1415, 0, 1, 100, false)
+            .then(() => logger.info("Scanner triggered"))
+            .catch((err) =>
+              logger.error(`Error triggering scanner: ${err.message}`)
+            );
         });
-        logger.info(`First scan data: ${scannerData}`);
-      } catch (scanError) {
-        logger.error("Error reading first scanner data:", scanError);
-        logger.info("Calling handleError for first scan failure");
-        await handleError(scanError);
-        continue;
+
+        logger.info(`Scanner data received: ${scannerData}`);
+      } catch (error) {
+        logger.error("Error or timeout waiting for scanner data:", error);
+        continue; // Retry or handle the error
       }
       // await sleep(5 * 1000);
 
@@ -349,6 +376,8 @@ export async function runContinuousScan(io = null, comService) {
         );
         continue;
       }
+      logger.info("Clearing buffer before second scan...");
+      comService.clearBuffer();
 
       logger.info(
         "-----------------------------------------------------------------------------------------------------------"
@@ -359,23 +388,69 @@ export async function runContinuousScan(io = null, comService) {
         "-----------------------------------------------------------------------------------------------------------"
       );
       logger.info("Writing bit 1414.F(15) to trigger second scanner");
-      await writeBitsWithRest(1414, 15, 1, 1000, false);
+      // await writeBitsWithRest(1414, 15, 1, 800, false);
       logger.info("Triggered second scanner");
       // await sleep(1000);
+      // await writeBitsWithRest(1414, 15, 1, 800, false);
 
+      // await sleep(1000);
       let secondScannerData;
       try {
-        logger.info("Attempting to read second scan data...");
-        secondScannerData = await new Promise((resolve) => {
-          comService.once("data", resolve);
+        // Step 1: Set up the event listener for incoming scanner data
+        logger.info("Setting up data listener for second scan...");
+
+        // Create a promise that resolves when data is received
+        secondScannerData = await new Promise((resolve, reject) => {
+          const dataHandler = (data) => {
+            logger.info(`Data received: ${data}`);
+            resolve(data); // Resolve the promise when data is received
+            comService.off("dataGot", dataHandler); // Remove listener once data is processed
+          };
+
+          // Add event listener for incoming data
+          comService.on("dataGot", dataHandler);
+
+          // Set a timeout to avoid hanging indefinitely
+          const timeout = setTimeout(() => {
+            comService.off("dataGot", dataHandler);
+            reject(new Error("Timeout waiting for scanner data"));
+          }, 10000); // Adjust timeout as needed
+
+          // Trigger the scanner after the event listener is set
+          logger.info("Triggering the scanner...");
+          writeBitsWithRest(1414, 15, 1, 100, false)
+            .then(() => logger.info("Second Scanner triggered"))
+            .catch((err) =>
+              logger.error(`Error triggering scanner: ${err.message}`)
+            );
         });
-        logger.info(`Second scan data: ${secondScannerData}`);
-      } catch (scanError) {
-        logger.error("Error reading second scanner data:", scanError);
-        logger.info("Calling handleError for second scan failure");
-        await handleError(scanError);
-        continue;
+
+        logger.info(`Scanner data received: ${secondScannerData}`);
+      } catch (error) {
+        logger.error("Error or timeout waiting for scanner data:", error);
+        continue; // Retry or handle the error
       }
+      // let secondScannerData;
+      // try {
+      //   logger.info("Checking if queue already has data...");
+      //   if (comService.dataQueue.length() > 0) {
+      //     const task = comService.dataQueue.shift(); // Pick from the queue
+      //     secondScannerData = task.line;
+      //     logger.info(
+      //       `Processing existing data from queue: ${secondScannerData}`
+      //     );
+      //   } else {
+      //     // If no data in queue, wait for new data from first scan
+      //     logger.info("No data in queue, waiting for first scan data...");
+      //     secondScannerData = await new Promise((resolve) => {
+      //       comService.once("data", resolve);
+      //     });
+      //     logger.info(`First scan data: ${secondScannerData}`);
+      //   }
+      // } catch (scanError) {
+      //   logger.error("Error reading first scanner data:", scanError);
+      //   continue;
+      // }
 
       logger.info("Checking for reset after second scan");
       if (await checkReset()) {
