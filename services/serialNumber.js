@@ -5,6 +5,7 @@ import {
   setHours,
   setMinutes,
   isSameDay,
+  isBefore,
 } from "date-fns";
 import MongoDBService from "./mongoDbService.js";
 import logger from "../logger.js";
@@ -108,6 +109,7 @@ class SerialNumberGeneratorService {
     }
 
     try {
+      // Connect to MongoDB and fetch the last document
       await MongoDBService.connect(dbName, collectionName);
       const lastDocument = await this.getLastDocumentFromMongoDB();
 
@@ -123,6 +125,9 @@ class SerialNumberGeneratorService {
           "No previous documents found, starting with serial number 0001"
         );
       }
+
+      // Check if a reset is needed when initializing
+      this.checkAndResetSerialNumber();
 
       this.isInitialized = true;
     } catch (error) {
@@ -154,13 +159,33 @@ class SerialNumberGeneratorService {
 
   checkAndResetSerialNumber() {
     const now = new Date();
-    const resetTime = setMinutes(
-      setHours(new Date(), this.resetHour),
+
+    // Set resetTime to 6:00 AM today
+    const resetTime = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      this.resetHour,
       this.resetMinute
     );
 
-    // Check if it's past 6:00 AM and we haven't reset today
-    if (isAfter(now, resetTime) && !isSameDay(now, this.lastResetDate)) {
+    console.log({
+      now: format(now, "yyyy-MM-dd HH:mm:ss"),
+      resetTime: format(resetTime, "yyyy-MM-dd HH:mm:ss"),
+      lastResetDate: format(this.lastResetDate, "yyyy-MM-dd HH:mm:ss"),
+      isAfterResetTime: isAfter(now, resetTime), // True if now is past 6:00 AM today
+      isSameDayAsLastReset: isSameDay(now, this.lastResetDate), // True if last reset was today
+      isLastResetBeforeResetTime: isBefore(this.lastResetDate, resetTime), // Check if last reset was before reset time today
+    });
+
+    // If it's past the reset time and either:
+    // 1. The last reset was on a different day, or
+    // 2. The last reset was on the same day but before today's reset time
+    if (
+      isAfter(now, resetTime) &&
+      (!isSameDay(now, this.lastResetDate) ||
+        isBefore(this.lastResetDate, resetTime))
+    ) {
       this.currentSerialNumber = 1;
       this.lastResetDate = now;
       logger.info(

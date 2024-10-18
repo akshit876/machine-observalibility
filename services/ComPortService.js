@@ -1,19 +1,31 @@
+/* eslint-disable consistent-return */
 import { SerialPort } from "serialport";
 import winston from "winston";
 import "winston-daily-rotate-file";
 import path from "path";
-class BufferedComPortService {
+import async from "async";
+import EventEmitter from "events";
+
+class BufferedComPortService extends EventEmitter {
   constructor(options = {}) {
+    super(); // Initialize EventEmitter
     this.options = {
-      path: options.path || process.env.SERIAL_PORT || "COM4",
+      path: options.path || process.env.SERIAL_PORT || "COM3",
       baudRate: parseInt(options.baudRate || process.env.BAUD_RATE, 10) || 9600,
       logDir: options.logDir || "logs",
     };
     this.port = null;
     this.buffer = "";
-    this.dataCallback = null;
     this.isInitialized = false;
     this.setupLogger();
+
+    // Initialize async.queue for in-memory job handling
+    this.dataQueue = async.queue(async (task, callback) => {
+      console.log(`Processing data from queue: ${task.line}`);
+      this.log(`Processing data from queue: ${task.line}`, "info");
+      // Add custom processing logic here, like saving to a database or other transformations
+      callback(); // Signal that the job is done
+    }, 1); // Set concurrency to 1 to process one task at a time
   }
 
   setupLogger() {
@@ -50,7 +62,6 @@ class BufferedComPortService {
       return;
     }
 
-    // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       this.port = new SerialPort({
         path: this.options.path,
@@ -61,11 +72,9 @@ class BufferedComPortService {
       this.port.open((err) => {
         if (err) {
           this.log(`Error opening port: ${err.message}`, "error");
-          console.error("Error opening port:", err.message);
           reject(err);
         } else {
           this.log("Port opened successfully");
-          console.log("Port opened successfully");
           this.setupListeners();
           this.isInitialized = true;
           resolve();
@@ -83,7 +92,6 @@ class BufferedComPortService {
 
     this.port.on("error", (err) => {
       this.log(`Port error: ${err.message}`, "error");
-      console.error("Port error:", err);
     });
   }
 
@@ -92,60 +100,15 @@ class BufferedComPortService {
     while (lineEnd > -1) {
       const line = this.buffer.slice(0, lineEnd).trim();
       if (line) {
-        this.processLine(line);
+        this.log(`Processed line: ${line}`, "info");
+        // Add the processed line to the queue
+        this.dataQueue.push({ line });
+        // Emit an event with the scanner data
+        this.emit("data", line);
       }
       this.buffer = this.buffer.slice(lineEnd + 1);
       lineEnd = this.buffer.indexOf("\n");
     }
-  }
-
-  processLine(line) {
-    this.log(`Processed line: ${line}`, "info");
-    if (this.dataCallback) {
-      this.dataCallback(line);
-    }
-  }
-
-  readData(callback) {
-    this.dataCallback = callback;
-  }
-
-  async sendData(data) {
-    if (!this.isInitialized) {
-      throw new Error("Serial port is not initialized");
-    }
-
-    return new Promise((resolve, reject) => {
-      this.port.write(data, (err) => {
-        if (err) {
-          this.log(`Error sending data: ${err.message}`, "error");
-          reject(`Error sending data: ${err.message}`);
-        } else {
-          this.log(`Data sent: ${data}`, "info");
-          resolve();
-        }
-      });
-    });
-  }
-
-  readDataSync(timeout = 30000) {
-    return new Promise((resolve, reject) => {
-      let data = "";
-      const timeoutId = setTimeout(() => {
-        reject(new Error("Timeout waiting for data"));
-      }, timeout);
-
-      const dataHandler = (chunk) => {
-        data += chunk.toString();
-        if (data.includes("\n")) {
-          clearTimeout(timeoutId);
-          this.port.removeListener("data", dataHandler);
-          resolve(data.trim());
-        }
-      };
-
-      this.port.on("data", dataHandler);
-    });
   }
 
   async closePort() {
@@ -154,15 +117,13 @@ class BufferedComPortService {
       return;
     }
 
-    // eslint-disable-next-line consistent-return
     return new Promise((resolve, reject) => {
       this.port.close((err) => {
         if (err) {
           this.log(`Error closing port: ${err.message}`, "error");
-          reject(`Error closing port: ${err.message}`);
+          reject(err);
         } else {
           this.log("Port closed successfully");
-          console.log("Port closed successfully");
           this.isInitialized = false;
           resolve();
         }
@@ -172,23 +133,3 @@ class BufferedComPortService {
 }
 
 export default BufferedComPortService;
-// // Usage example:
-// const comService = new BufferedComPortService({
-//   path: "COM3", // Make sure this matches your actual COM port
-//   baudRate: 9600, // Adjust if needed
-//   logDir: "com_port_logs", // Specify the directory for log files
-// });
-
-// comService
-//   .initSerialPort()
-//   .then(() => {
-//     console.log("Port initialized, waiting for data...");
-//     comService.readData((line) => {
-//       console.log("Received data:", line);
-//     });
-//     // Optionally, send some data
-//     // return comService.sendData('Hello, COM port!\r\n');
-//   })
-//   .catch((error) => {
-//     console.error("Error:", error);
-//   });

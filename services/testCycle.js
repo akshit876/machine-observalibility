@@ -303,7 +303,9 @@ export async function runContinuousScan(io = null, comService) {
       let scannerData;
       try {
         logger.info("Attempting to read first scan data...");
-        scannerData = await comService.readDataSync(SCAN_READNER);
+        scannerData = await new Promise((resolve) => {
+          comService.once("data", resolve);
+        });
         logger.info(`First scan data: ${scannerData}`);
       } catch (scanError) {
         logger.error("Error reading first scanner data:", scanError);
@@ -359,12 +361,14 @@ export async function runContinuousScan(io = null, comService) {
       logger.info("Writing bit 1414.F(15) to trigger second scanner");
       await writeBitsWithRest(1414, 15, 1, 1000, false);
       logger.info("Triggered second scanner");
-      await sleep(1000);
+      // await sleep(1000);
 
       let secondScannerData;
       try {
         logger.info("Attempting to read second scan data...");
-        secondScannerData = await comService.readDataSync(SCAN_READNER);
+        secondScannerData = await new Promise((resolve) => {
+          comService.once("data", resolve);
+        });
         logger.info(`Second scan data: ${secondScannerData}`);
       } catch (scanError) {
         logger.error("Error reading second scanner data:", scanError);
