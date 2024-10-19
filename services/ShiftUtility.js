@@ -1,12 +1,31 @@
 import { parse, isAfter, isBefore, addDays, format, set } from "date-fns";
+import mongoDbService from "./mongoDbService.js";
 
+export async function getShiftConfigFromDB() {
+  await mongoDbService.connect("main-data", "configs");
+  const collection = mongoDbService.collection;
+  const config = await collection.findOne({});
+  return config ? config.shiftConfig : null; // Assuming the document structure has a field 'shiftConfig'
+}
+
+export async function updateShiftConfigInDB(newConfig) {
+  await mongoDbService.connect("main-data", "configs");
+  const collection = mongoDbService.collection;
+  await collection.updateOne(
+    {}, // Update the first document found
+    { $set: { shiftConfig: newConfig } }, // Set the new configuration
+    { upsert: true } // Create a new document if none exists
+  );
+}
 class ShiftUtility {
   constructor(shiftConfig = null) {
-    this.shiftConfig = shiftConfig || {
-      A: { start: "06:00", end: "14:30" },
-      B: { start: "14:30", end: "23:00" },
-      C: { start: "23:00", end: "06:00" },
-    };
+    // Initialize shiftConfig from MongoDB
+    this.shiftConfig = shiftConfig ||
+      getShiftConfigFromDB() || {
+        A: { start: "06:00", end: "14:30" },
+        B: { start: "14:30", end: "23:00" },
+        C: { start: "23:00", end: "06:00" },
+      };
   }
 
   setShiftConfig(newConfig) {
@@ -56,6 +75,12 @@ class ShiftUtility {
   _parseTime(timeString, baseDate) {
     const [hours, minutes] = timeString.split(":").map(Number);
     return set(baseDate, { hours, minutes, seconds: 0, milliseconds: 0 });
+  }
+
+  // New method to update shift config in MongoDB
+  async updateShiftConfig(newConfig) {
+    this.shiftConfig = { ...this.shiftConfig, ...newConfig };
+    await updateShiftConfigInDB(this.shiftConfig); // Function to update MongoDB
   }
 }
 
