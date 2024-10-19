@@ -295,14 +295,14 @@ export async function runContinuousScan(io = null, comService) {
       logger.info(
         "-----------------------------------------------------------------------------------------------------------"
       );
-      logger.info("Trigger First Scanner on ........");
-      await writeBitsWithRest(1415, 0, 1, 800, false);
-      // await sleep(1000);
-      logger.info("=== STARTING FIRST SCAN ===");
-      logger.info(
-        "-----------------------------------------------------------------------------------------------------------"
-      );
-      await writeBitsWithRest(1415, 0, 1, 800, false);
+      // logger.info("Trigger First Scanner on ........");
+      // await writeBitsWithRest(1415, 0, 1, 800, false);
+      // // await sleep(1000);
+      // logger.info("=== STARTING FIRST SCAN ===");
+      // logger.info(
+      //   "-----------------------------------------------------------------------------------------------------------"
+      // );
+      // await writeBitsWithRest(1415, 0, 1, 800, false);
 
       let scannerData;
       try {
@@ -367,7 +367,7 @@ export async function runContinuousScan(io = null, comService) {
       // logger.info("Writing bit 1415.4 to confirm file transfer to PLC");
       // await writeBitsWithRest(1415, 4, 1, 100, false);
       // logger.info("File transfer confirmation sent to PLC");
-      await sleep(5 * 1000);
+      await sleep(1000);
 
       logger.info("Checking for reset or waiting for bit 1410.2");
       if (await checkResetOrBit(1410, 2, 1)) {
